@@ -1860,10 +1860,11 @@ fetchPrices().then(()=>{ runLiveAnalysis(); });
 
 // Recurring refresh cycles
 setInterval(()=>{
-  fetchPrices();
-  checkPendingSignals();
-  dmCheckAutoClose();
-  dmRender();
+  fetchPrices().then(()=>{
+    checkPendingSignals();
+    dmCheckAutoClose();
+    dmRender();
+  });
 }, 10000);       // live prices every 10s + demo trading checks
 setInterval(fetchFearGreed, 60000);    // F&G every 60s
 setInterval(fetchNews, 120000);        // news every 2 min
