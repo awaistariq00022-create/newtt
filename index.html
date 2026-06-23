@@ -299,9 +299,10 @@
       <!-- INDICATORS -->
       <div style="margin-top:10px">
         <div class="stitle">📊 Technical Indicators — Active Coin</div>
-        <div class="grid4">
+        <div class="grid3" style="grid-template-columns:repeat(5,1fr)">
           <div class="mini"><div class="mini-l">RSI (14)</div><div class="mini-v" style="color:var(--green)" id="ind-rsi">Wait..</div><div class="mini-s" id="ind-rsi-s">Auto-updates</div></div>
           <div class="mini"><div class="mini-l">EMA Cross</div><div class="mini-v" style="color:var(--purple)" id="ind-ema">Wait..</div><div class="mini-s" id="ind-ema-s">20 &amp; 50 period</div></div>
+          <div class="mini"><div class="mini-l">ATR Volatility</div><div class="mini-v" style="color:var(--gold)" id="ind-atr">Wait..</div><div class="mini-s" id="ind-atr-s">Drives SL/TP sizing</div></div>
           <div class="mini"><div class="mini-l">24H Change</div><div class="mini-v" id="ind-chg">Wait..</div><div class="mini-s" id="ind-chg-s">Live</div></div>
           <div class="mini"><div class="mini-l">News Impact</div><div class="mini-v" style="color:var(--blue)" id="ind-news">—</div><div class="mini-s" id="ind-news-s">From live news</div></div>
         </div>
@@ -885,6 +886,30 @@ function calculateEMA(closes, period){
   return ema;
 }
 
+// ATR (Average True Range) — measures how much a coin typically moves per candle.
+// Used to size Stop Loss / Take Profit per-coin instead of a fixed %.
+// klines rows: [openTime, open, high, low, close, volume, ...]
+function calculateATR(klines, period = 14){
+  const trueRanges = [];
+  for(let i=1; i<klines.length; i++){
+    const high  = parseFloat(klines[i][2]);
+    const low   = parseFloat(klines[i][3]);
+    const prevClose = parseFloat(klines[i-1][4]);
+    const tr = Math.max(
+      high - low,
+      Math.abs(high - prevClose),
+      Math.abs(low - prevClose)
+    );
+    trueRanges.push(tr);
+  }
+  // Wilder's smoothing (same style as RSI smoothing already used in this file)
+  let atr = trueRanges.slice(0, period).reduce((a,b)=>a+b, 0) / period;
+  for(let i=period; i<trueRanges.length; i++){
+    atr = (atr * (period-1) + trueRanges[i]) / period;
+  }
+  return atr;
+}
+
 // News-sentiment bonus applied on top of the RSI/EMA confidence
 function newsBonusFor(coinSym, baseBull){
   const relevant = globalNewsItems.filter(n=>n.coin===coinSym||n.coin==='ALL');
@@ -918,8 +943,9 @@ function recordSignal(coin){
   if(recent) return;
 
   const buy = coin.sig.includes('Buy');
-  const sl  = buy ? coin.price*0.97 : coin.price*1.03;
-  const tp1 = buy ? coin.price*1.02 : coin.price*0.98;
+  const hasATR = typeof coin.dynSL === 'number' && !isNaN(coin.dynSL);
+  const sl  = hasATR ? coin.dynSL  : (buy ? coin.price*0.97 : coin.price*1.03);
+  const tp1 = hasATR ? coin.dynTP1 : (buy ? coin.price*1.02 : coin.price*0.98);
 
   signalHistory.unshift({
     id: now+'_'+coin.sym,
@@ -929,6 +955,8 @@ function recordSignal(coin){
     conf: coin.conf,
     entry: coin.price,
     sl, tp1,
+    atrPct: coin.atrPct || null,
+    volLabel: coin.volLabel || null,
     outcome: 'Pending',
     closePrice: null,
     pnl: null
@@ -1026,6 +1054,8 @@ async function analyzeCoin(coin){
     const rsi = calculateRSI(closes, 14);
     const ema20 = calculateEMA(closes.slice(-50), 20);
     const ema50 = calculateEMA(closes.slice(-100), 50);
+    const atr = calculateATR(data, 14);
+    const atrPct = (atr / currentPrice) * 100; // ATR as % of price — true volatility measure per coin
 
     let confidence = 50;
     let signal = 'No Trade';
@@ -1087,6 +1117,20 @@ async function analyzeCoin(coin){
 
     confidence = Math.min(Math.max(confidence, 0), 97);
 
+    // ── ATR-based dynamic Stop Loss / Take Profit ──
+    // SL distance = 1.5x ATR (gives room for normal noise on volatile coins,
+    // stays tight on stable coins). TP distance = 2x SL distance → fixed 1:2 R:R.
+    const buySide = signal.includes('Buy');
+    const slMult = 1.5;
+    const rrRatio = 2.0;
+    const slDist = atr * slMult;
+    const tpDist = slDist * rrRatio;
+    const dynSL  = buySide ? currentPrice - slDist : currentPrice + slDist;
+    const dynTP1 = buySide ? currentPrice + tpDist  : currentPrice - tpDist;
+    const dynTP2 = buySide ? currentPrice + tpDist*1.6 : currentPrice - tpDist*1.6;
+
+    const volLabel = atrPct >= 4 ? 'High' : atrPct >= 1.5 ? 'Moderate' : 'Low';
+
     coin.price = currentPrice;
     coin.rsi   = rsi.toFixed(1);
     coin.score = confidence;
@@ -1095,6 +1139,12 @@ async function analyzeCoin(coin){
     coin.trend = trend;
     coin.reason= reason;
     coin.tags  = tags;
+    coin.atr   = atr;
+    coin.atrPct= atrPct;
+    coin.volLabel = volLabel;
+    coin.dynSL  = dynSL;
+    coin.dynTP1 = dynTP1;
+    coin.dynTP2 = dynTP2;
 
     if(coin.sym === COINS[activeCoin].sym){
       const rsiEl = document.getElementById('ind-rsi');
@@ -1112,6 +1162,14 @@ async function analyzeCoin(coin){
       }
       const emaSEl = document.getElementById('ind-ema-s');
       if(emaSEl) emaSEl.textContent = bullish ? 'Golden Cross' : 'Death Cross';
+
+      const atrEl = document.getElementById('ind-atr');
+      if(atrEl){
+        atrEl.textContent = volLabel + ' (' + atrPct.toFixed(1) + '%)';
+        atrEl.style.color = volLabel==='High'?'var(--red)':volLabel==='Moderate'?'var(--gold)':'var(--green)';
+      }
+      const atrSEl = document.getElementById('ind-atr-s');
+      if(atrSEl) atrSEl.textContent = 'ATR: '+fmtPrice(atr)+' per 15m candle';
 
       const chgEl = document.getElementById('ind-chg');
       if(chgEl){
@@ -1168,11 +1226,14 @@ function renderSignals(){
   let h='';
   active.forEach(c=>{
     const buy=c.sig.includes('Buy');
-    const sl=buy?(c.price*.97):(c.price*1.03);
-    const tp1=buy?(c.price*1.02):(c.price*.98);
-    const tp2=buy?(c.price*1.04):(c.price*.96);
-    const tp3=buy?(c.price*1.06):(c.price*.94);
+    // Use ATR-based dynamic SL/TP if available, otherwise fall back to a safe estimate
+    const hasATR = typeof c.dynSL === 'number' && !isNaN(c.dynSL);
+    const sl  = hasATR ? c.dynSL  : (buy?(c.price*.97):(c.price*1.03));
+    const tp1 = hasATR ? c.dynTP1 : (buy?(c.price*1.02):(c.price*.98));
+    const tp2 = hasATR ? c.dynTP2 : (buy?(c.price*1.04):(c.price*.96));
+    const tp3 = hasATR ? (buy ? c.price+(c.dynTP2-c.price)*1.3 : c.price-(c.price-c.dynTP2)*1.3) : (buy?(c.price*1.06):(c.price*.94));
     const col=buy?'var(--green)':'var(--red)';
+    const volColor = c.volLabel==='High'?'var(--red)':c.volLabel==='Moderate'?'var(--gold)':'var(--green)';
     h+=`<div class="sig-card ${buy?'buy':'sell'}">
       <div class="sig-top">
         <div class="cc">
@@ -1190,7 +1251,7 @@ function renderSignals(){
         <div class="tbox"><div class="tl">Entry Price</div><div class="tv2">${fmtPrice(c.price)}</div></div>
         <div class="tbox"><div class="tl">Stop Loss</div><div class="tv2" style="color:var(--red)">${fmtPrice(sl)}</div></div>
         <div class="tbox"><div class="tl">Risk/Reward</div><div class="tv2" style="color:var(--purple)">1 : 2.0</div></div>
-        <div class="tbox"><div class="tl">Timeframe</div><div class="tv2">15m Algo</div></div>
+        <div class="tbox"><div class="tl">Volatility (ATR)</div><div class="tv2" style="color:${volColor}">${c.volLabel||'—'} ${c.atrPct?'('+c.atrPct.toFixed(1)+'%)':''}</div></div>
       </div>
       <div class="tp-row">
         <div class="tp ${buy?'g':'r'}"><div class="tpl">TP 1</div><div class="tpv" style="color:${col}">${fmtPrice(tp1)}</div></div>
@@ -1198,8 +1259,8 @@ function renderSignals(){
         <div class="tp ${buy?'g':'r'}"><div class="tpl">TP 3</div><div class="tpv" style="color:${col}">${fmtPrice(tp3)}</div></div>
       </div>
       <div class="reason">
-        <div class="reason-t">🤖 Live AI TA Reason (RSI/EMA + News)</div>
-        <div class="reason-txt">${c.reason}</div>
+        <div class="reason-t">🤖 Live AI TA Reason (RSI/EMA + News + ATR)</div>
+        <div class="reason-txt">${c.reason} SL/TP sized from this coin's own ATR (${c.atrPct?c.atrPct.toFixed(2):'—'}% of price) — not a generic fixed %.</div>
         <div class="tags">${(c.tags).map(t=>`<span class="tag">${t}</span>`).join('')}</div>
       </div>
     </div>`;
