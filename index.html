@@ -269,9 +269,9 @@
     <!-- THRESHOLD -->
     <div style="padding:10px 12px">
       <div class="sb-head" style="padding:0 0 6px">Min Confidence</div>
-      <input type="range" min="50" max="95" value="70" id="thresh" oninput="setThresh(this.value)" style="width:100%">
+      <input type="range" min="50" max="95" value="60" id="thresh" oninput="setThresh(this.value)" style="width:100%">
       <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--t3);margin-top:2px">
-        <span>50%</span><span id="thresh-lbl" style="color:var(--gold);font-weight:500">70%</span><span>95%</span>
+        <span>50%</span><span id="thresh-lbl" style="color:var(--gold);font-weight:500">60%</span><span>95%</span>
       </div>
     </div>
   </div>
@@ -349,7 +349,7 @@
 
     <!-- SIGNALS -->
     <div class="view" id="view-signals">
-      <div class="stitle">🤖 AI Trading Signals — Min Confidence: <span id="thresh-show">70</span>%</div>
+      <div class="stitle">🤖 AI Trading Signals — Min Confidence: <span id="thresh-show">60</span>%</div>
       <div class="sig-grid" id="sig-grid"></div>
     </div>
 
@@ -604,7 +604,7 @@ const COINS = [
   {sym:'AVAX',name:'Avalanche',color:'#e84142',bg:'rgba(232,65,66,.15)',  price:0, chg:0, vol:'0', mcap:'—', score:50, sig:'Analyzing...', conf:50, trend:'Neutral', reason:'Waiting for live data...', tags:[]},
 ];
 
-let threshold = 70;
+let threshold = 60;
 let activeCoin = 0;
 let currentSym = 'BTCUSDT';
 let currentTF = '60';
@@ -1034,32 +1034,43 @@ async function analyzeCoin(coin){
     let tags = ['15m Klines'];
     let bullish = ema20 > ema50;
 
+    // Momentum bonus: bigger 24h move = stronger conviction, regardless of RSI zone
+    const chgAbs = Math.abs(coin.chg||0);
+    const momentumBonus = Math.min(20, Math.round(chgAbs * 4)); // up to +20 pts
+
     if(bullish){
       trend = 'Bullish';
-      confidence += 10;
+      confidence += 10 + momentumBonus;
       if(rsi < 35){
         signal = 'Strong Buy'; confidence += 25;
         reason = `Price is in a bullish trend (EMA 20 > 50) and RSI is oversold at ${rsi.toFixed(1)}. Great bounce opportunity detected.`;
         tags.push('Oversold','EMA Cross','RSI');
-      } else if(rsi < 55){
-        signal = 'Buy'; confidence += 15;
-        reason = `Momentum is bullish. RSI is healthy at ${rsi.toFixed(1)}. Continuation expected.`;
+      } else if(rsi < 65){
+        signal = chgAbs>=1.5 ? 'Strong Buy' : 'Buy';
+        confidence += 15;
+        reason = `Momentum is bullish (24H ${coin.chg>=0?'+':''}${coin.chg.toFixed(2)}%). RSI at ${rsi.toFixed(1)} confirms continuation.`;
         tags.push('Uptrend','RSI Neutral');
       } else {
-        reason = `Bullish trend but RSI is high (${rsi.toFixed(1)}). Waiting for pullback.`;
+        signal = 'Buy'; confidence += 5;
+        reason = `Bullish trend but RSI is high (${rsi.toFixed(1)}) — overbought caution, smaller position advised.`;
+        tags.push('Overbought Caution');
       }
     } else {
       trend = 'Bearish';
+      confidence += 10 + momentumBonus;
       if(rsi > 65){
         signal = 'Strong Sell'; confidence += 25;
         reason = `Price is in a bearish trend (EMA 20 < 50) and RSI is overbought at ${rsi.toFixed(1)}. Heavy rejection expected.`;
         tags.push('Overbought','EMA Cross Bearish','RSI');
-      } else if(rsi > 45){
-        signal = 'Sell'; confidence += 15;
-        reason = `Momentum is bearish. RSI is weak at ${rsi.toFixed(1)}. Downside continuation likely.`;
+      } else if(rsi > 35){
+        signal = chgAbs>=1.5 ? 'Strong Sell' : 'Sell';
+        confidence += 15;
+        reason = `Momentum is bearish (24H ${coin.chg.toFixed(2)}%). RSI at ${rsi.toFixed(1)} confirms downside continuation.`;
         tags.push('Downtrend','RSI Neutral');
       } else {
-        reason = `Bearish trend but RSI is low (${rsi.toFixed(1)}). Selling now is risky.`;
+        signal = 'Sell'; confidence += 5;
+        reason = `Bearish trend, RSI is oversold (${rsi.toFixed(1)}) — downside momentum strong but bounce risk rising.`;
+        tags.push('Oversold Caution');
       }
     }
 
@@ -1075,7 +1086,6 @@ async function analyzeCoin(coin){
     }
 
     confidence = Math.min(Math.max(confidence, 0), 97);
-    if(signal === 'No Trade') confidence = Math.floor(Math.random() * (60 - 40 + 1) + 40);
 
     coin.price = currentPrice;
     coin.rsi   = rsi.toFixed(1);
@@ -1844,10 +1854,9 @@ if(dash){ dash.style.display='flex'; dash.classList.add('on'); }
 startOBSocket(COINS[activeCoin].sym + 'USDT');
 
 // Initial data fetches
-fetchPrices();
 fetchFearGreed();
 fetchNews();
-runLiveAnalysis();
+fetchPrices().then(()=>{ runLiveAnalysis(); });
 
 // Recurring refresh cycles
 setInterval(()=>{
