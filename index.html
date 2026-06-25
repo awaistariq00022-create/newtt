@@ -160,8 +160,8 @@
   @keyframes spin{to{transform:rotate(360deg)}}
 
   /* HISTORY TABLE */
-  .h-th{display:grid;grid-template-columns:90px 60px 70px 85px 75px 75px 75px 80px 90px;padding:8px 14px;font-size:10px;color:var(--t3);border-bottom:0.5px solid var(--border);gap:4px}
-  .h-tr{display:grid;grid-template-columns:90px 60px 70px 85px 75px 75px 75px 80px 90px;padding:8px 14px;border-bottom:0.5px solid var(--border);align-items:center;font-size:11px;transition:background .1s;gap:4px}
+  .h-th{display:grid;grid-template-columns:90px 60px 70px 85px 75px 75px 60px 70px 80px 50px;padding:8px 14px;font-size:10px;color:var(--t3);border-bottom:0.5px solid var(--border);gap:4px}
+  .h-tr{display:grid;grid-template-columns:90px 60px 70px 85px 75px 75px 60px 70px 80px 50px;padding:8px 14px;border-bottom:0.5px solid var(--border);align-items:center;font-size:11px;transition:background .1s;gap:4px}
   .h-tr:hover{background:var(--bg3)}
   .h-tr:last-child{border-bottom:none}
   .outcome-hit{color:var(--green);font-weight:600}
@@ -299,9 +299,12 @@
       <!-- INDICATORS -->
       <div style="margin-top:10px">
         <div class="stitle">📊 Technical Indicators — Active Coin</div>
-        <div class="grid3" style="grid-template-columns:repeat(5,1fr)">
+        <div class="grid4">
           <div class="mini"><div class="mini-l">RSI (14)</div><div class="mini-v" style="color:var(--green)" id="ind-rsi">Wait..</div><div class="mini-s" id="ind-rsi-s">Auto-updates</div></div>
-          <div class="mini"><div class="mini-l">EMA Cross</div><div class="mini-v" style="color:var(--purple)" id="ind-ema">Wait..</div><div class="mini-s" id="ind-ema-s">20 &amp; 50 period</div></div>
+          <div class="mini"><div class="mini-l">Trend Direction</div><div class="mini-v" style="color:var(--purple)" id="ind-ema">Wait..</div><div class="mini-s" id="ind-ema-s">EMA+MACD+Price blend</div></div>
+          <div class="mini"><div class="mini-l">MACD Histogram</div><div class="mini-v" style="color:var(--blue)" id="ind-macd">Wait..</div><div class="mini-s" id="ind-macd-s">Fast momentum check</div></div>
+          <div class="mini"><div class="mini-l">Volume vs Avg</div><div class="mini-v" style="color:var(--gold)" id="ind-vol2">Wait..</div><div class="mini-s" id="ind-vol2-s">Confirms real moves</div></div>
+          <div class="mini"><div class="mini-l">1H Trend Check</div><div class="mini-v" style="color:var(--purple)" id="ind-1h">Wait..</div><div class="mini-s" id="ind-1h-s">Multi-timeframe</div></div>
           <div class="mini"><div class="mini-l">ATR Volatility</div><div class="mini-v" style="color:var(--gold)" id="ind-atr">Wait..</div><div class="mini-s" id="ind-atr-s">Drives SL/TP sizing</div></div>
           <div class="mini"><div class="mini-l">24H Change</div><div class="mini-v" id="ind-chg">Wait..</div><div class="mini-s" id="ind-chg-s">Live</div></div>
           <div class="mini"><div class="mini-l">News Impact</div><div class="mini-v" style="color:var(--blue)" id="ind-news">—</div><div class="mini-s" id="ind-news-s">From live news</div></div>
@@ -910,6 +913,57 @@ function calculateATR(klines, period = 14){
   return atr;
 }
 
+// MACD (12,26,9) — reacts faster than a simple EMA20/50 cross, good at catching
+// momentum shifts early (e.g. price just turned down before the slow EMAs notice).
+// Returns {macd, signal, histogram} using the most recent values.
+function calculateMACDSeries(closes, fast=12, slow=26, signalPeriod=9){
+  function emaSeries(vals, period){
+    const k = 2/(period+1);
+    const out = [vals[0]];
+    for(let i=1;i<vals.length;i++) out.push(vals[i]*k + out[i-1]*(1-k));
+    return out;
+  }
+  const emaFast = emaSeries(closes, fast);
+  const emaSlow = emaSeries(closes, slow);
+  const macdLine = closes.map((_,i)=>emaFast[i]-emaSlow[i]);
+  const signalLine = emaSeries(macdLine, signalPeriod);
+  const histogram = macdLine.map((v,i)=>v-signalLine[i]);
+  const n = closes.length-1;
+  return {
+    macd: macdLine[n],
+    signal: signalLine[n],
+    histogram: histogram[n],
+    prevHistogram: histogram[n-1]
+  };
+}
+
+// Volume confirmation — compares the latest candle's volume against the recent
+// average. A move on high volume is more trustworthy than the same move on low
+// volume (which is often noise or a fake breakout).
+function calculateVolumeRatio(klines, lookback=20){
+  const vols = klines.map(k=>parseFloat(k[5]));
+  const recent = vols.slice(-lookback, -1); // exclude current candle from the average
+  const avgVol = recent.reduce((a,b)=>a+b,0) / recent.length;
+  const currentVol = vols[vols.length-1];
+  return avgVol > 0 ? currentVol / avgVol : 1;
+}
+
+// Multi-timeframe confirmation — fetches the 1H trend (EMA20 vs EMA50 on 1H candles)
+// so a 15m signal can be checked against the bigger picture. Trading WITH the 1H
+// trend is safer than against it; mismatches reduce confidence rather than block the signal.
+async function fetch1HTrend(sym){
+  try{
+    const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${sym}USDT&interval=1h&limit=60`);
+    const data = await res.json();
+    const closes = data.map(d=>parseFloat(d[4]));
+    const ema20 = calculateEMA(closes.slice(-30), 20);
+    const ema50 = calculateEMA(closes, 50);
+    return ema20 > ema50 ? 'Bullish' : 'Bearish';
+  }catch(e){
+    return null; // unknown — treated as neutral, no penalty/bonus applied
+  }
+}
+
 // News-sentiment bonus applied on top of the RSI/EMA confidence
 function newsBonusFor(coinSym, baseBull){
   const relevant = globalNewsItems.filter(n=>n.coin===coinSym||n.coin==='ALL');
@@ -1036,11 +1090,15 @@ function renderHistory(){
       <div style="color:var(--t2)">${h.conf}%</div>
       <div style="font-family:'JetBrains Mono',monospace;color:${h.pnl!=null?pnlColor:'var(--t3)'}">${pnlText}</div>
       <div class="${outcomeClass}">${h.outcome}</div>
+      <div style="text-align:center">
+        <button onclick="dmTradeFromHistory('${h.id}')" title="Start live demo trade from this signal"
+          style="width:22px;height:22px;border-radius:5px;border:0.5px solid ${sigColor};background:${buy?'rgba(16,185,129,.12)':'rgba(239,68,68,.12)'};color:${sigColor};font-size:14px;font-weight:700;cursor:pointer;line-height:1;display:inline-flex;align-items:center;justify-content:center;font-family:Inter,sans-serif">+</button>
+      </div>
     </div>`;
   }).join('');
 
   document.getElementById('history-table').innerHTML =
-    `<div class="h-th"><div>Time</div><div>Coin</div><div>Signal</div><div>Entry</div><div>Stop Loss</div><div>TP 1</div><div>Conf</div><div>P&L</div><div>Outcome</div></div>`+rows;
+    `<div class="h-th"><div>Time</div><div>Coin</div><div>Signal</div><div>Entry</div><div>Stop Loss</div><div>TP 1</div><div>Conf</div><div>P&L</div><div>Outcome</div><div style="text-align:center">Trade</div></div>`+rows;
 }
 
 async function analyzeCoin(coin){
@@ -1056,16 +1114,33 @@ async function analyzeCoin(coin){
     const ema50 = calculateEMA(closes.slice(-100), 50);
     const atr = calculateATR(data, 14);
     const atrPct = (atr / currentPrice) * 100; // ATR as % of price — true volatility measure per coin
+    const macd = calculateMACDSeries(closes);
+    const volRatio = calculateVolumeRatio(data, 20);
 
     let confidence = 50;
     let signal = 'No Trade';
     let trend = 'Sideways';
     let reason = '';
     let tags = ['15m Klines'];
-    let bullish = ema20 > ema50;
 
-    // Momentum bonus: bigger 24h move = stronger conviction, regardless of RSI zone
-    const chgAbs = Math.abs(coin.chg||0);
+    // ── Direction: blend EMA (slow, stable) with MACD histogram (fast, catches
+    // turns earlier) and the raw 24h move, instead of trusting EMA cross alone.
+    // This fixes the "EMA says bullish while price is actually falling" lag issue.
+    const emaBullish  = ema20 > ema50;
+    const macdBullish = macd.histogram > 0;
+    const macdRising  = macd.histogram > macd.prevHistogram;
+    const chg = coin.chg || 0;
+    const chgAbs = Math.abs(chg);
+
+    // Each component votes bull(+1)/bear(-1); price momentum gets double weight
+    // since it's the most current information we have.
+    let directionVotes = (emaBullish?1:-1) + (macdBullish?1:-1) + (chg>=0?2:-2);
+    let bullish = directionVotes > 0;
+
+    // If EMA and price-momentum directly disagree, that's the lagging-EMA problem —
+    // trust price action and flag it rather than silently following the stale EMA.
+    const emaPriceConflict = (emaBullish && chg < -0.3) || (!emaBullish && chg > 0.3);
+
     const momentumBonus = Math.min(20, Math.round(chgAbs * 4)); // up to +20 pts
 
     if(bullish){
@@ -1073,16 +1148,16 @@ async function analyzeCoin(coin){
       confidence += 10 + momentumBonus;
       if(rsi < 35){
         signal = 'Strong Buy'; confidence += 25;
-        reason = `Price is in a bullish trend (EMA 20 > 50) and RSI is oversold at ${rsi.toFixed(1)}. Great bounce opportunity detected.`;
-        tags.push('Oversold','EMA Cross','RSI');
+        reason = `Bullish bias (price momentum + MACD) with RSI oversold at ${rsi.toFixed(1)}. Good bounce setup.`;
+        tags.push('Oversold','MACD','RSI');
       } else if(rsi < 65){
         signal = chgAbs>=1.5 ? 'Strong Buy' : 'Buy';
         confidence += 15;
-        reason = `Momentum is bullish (24H ${coin.chg>=0?'+':''}${coin.chg.toFixed(2)}%). RSI at ${rsi.toFixed(1)} confirms continuation.`;
-        tags.push('Uptrend','RSI Neutral');
+        reason = `Momentum is bullish (24H ${chg>=0?'+':''}${chg.toFixed(2)}%), MACD histogram ${macdBullish?'positive':'turning up'}. RSI at ${rsi.toFixed(1)} confirms continuation.`;
+        tags.push('Uptrend','MACD');
       } else {
         signal = 'Buy'; confidence += 5;
-        reason = `Bullish trend but RSI is high (${rsi.toFixed(1)}) — overbought caution, smaller position advised.`;
+        reason = `Bullish bias but RSI is high (${rsi.toFixed(1)}) — overbought caution, smaller position advised.`;
         tags.push('Overbought Caution');
       }
     } else {
@@ -1090,17 +1165,56 @@ async function analyzeCoin(coin){
       confidence += 10 + momentumBonus;
       if(rsi > 65){
         signal = 'Strong Sell'; confidence += 25;
-        reason = `Price is in a bearish trend (EMA 20 < 50) and RSI is overbought at ${rsi.toFixed(1)}. Heavy rejection expected.`;
-        tags.push('Overbought','EMA Cross Bearish','RSI');
+        reason = `Bearish bias (price momentum + MACD) with RSI overbought at ${rsi.toFixed(1)}. Heavy rejection expected.`;
+        tags.push('Overbought','MACD','RSI');
       } else if(rsi > 35){
         signal = chgAbs>=1.5 ? 'Strong Sell' : 'Sell';
         confidence += 15;
-        reason = `Momentum is bearish (24H ${coin.chg.toFixed(2)}%). RSI at ${rsi.toFixed(1)} confirms downside continuation.`;
-        tags.push('Downtrend','RSI Neutral');
+        reason = `Momentum is bearish (24H ${chg.toFixed(2)}%), MACD histogram ${!macdBullish?'negative':'turning down'}. RSI at ${rsi.toFixed(1)} confirms downside continuation.`;
+        tags.push('Downtrend','MACD');
       } else {
         signal = 'Sell'; confidence += 5;
-        reason = `Bearish trend, RSI is oversold (${rsi.toFixed(1)}) — downside momentum strong but bounce risk rising.`;
+        reason = `Bearish bias, RSI is oversold (${rsi.toFixed(1)}) — downside momentum strong but bounce risk rising.`;
         tags.push('Oversold Caution');
+      }
+    }
+
+    if(emaPriceConflict && signal !== 'No Trade'){
+      confidence -= 10;
+      reason += ` Note: slower EMA(20/50) still lags the other way — trading the more current price/MACD signal, but conviction reduced.`;
+      tags.push('EMA Lag Flag');
+    }
+
+    // ── Volume confirmation: a move on high volume is real, a move on thin
+    // volume is often noise. Scale confidence accordingly.
+    if(signal !== 'No Trade'){
+      if(volRatio >= 1.5){
+        confidence += 10;
+        reason += ` Volume is ${volRatio.toFixed(1)}x the recent average — strong participation backs this move.`;
+        tags.push('High Volume');
+      } else if(volRatio >= 1.0){
+        confidence += 4;
+        tags.push('Normal Volume');
+      } else if(volRatio < 0.6){
+        confidence -= 12;
+        reason += ` Caution: volume is only ${volRatio.toFixed(1)}x average — this move lacks participation and may not hold.`;
+        tags.push('Low Volume Warning');
+      }
+    }
+
+    // ── Multi-timeframe confirmation: check the 1H trend. Trading with the
+    // bigger trend is safer; against it gets a confidence penalty (not blocked).
+    const trend1H = await fetch1HTrend(coin.sym);
+    if(trend1H && signal !== 'No Trade'){
+      const signal1HBullish = trend1H === 'Bullish';
+      if(signal1HBullish === bullish){
+        confidence += 8;
+        reason += ` 1H trend (${trend1H}) aligns with this setup.`;
+        tags.push('1H Confirmed');
+      } else {
+        confidence -= 15;
+        reason += ` Conflict: 1H trend is ${trend1H} while this 15m setup is ${bullish?'Bullish':'Bearish'} — trading against the higher timeframe, reduced size advised.`;
+        tags.push('1H Conflict');
       }
     }
 
@@ -1145,6 +1259,10 @@ async function analyzeCoin(coin){
     coin.dynSL  = dynSL;
     coin.dynTP1 = dynTP1;
     coin.dynTP2 = dynTP2;
+    coin.macdHist = macd.histogram;
+    coin.volRatio = volRatio;
+    coin.trend1H  = trend1H;
+    coin.emaConflict = emaPriceConflict;
 
     if(coin.sym === COINS[activeCoin].sym){
       const rsiEl = document.getElementById('ind-rsi');
@@ -1157,11 +1275,11 @@ async function analyzeCoin(coin){
 
       const emaEl = document.getElementById('ind-ema');
       if(emaEl){
-        emaEl.textContent = bullish ? '20 > 50' : '20 < 50';
+        emaEl.textContent = bullish ? 'Bullish' : 'Bearish';
         emaEl.style.color = bullish ? 'var(--green)' : 'var(--red)';
       }
       const emaSEl = document.getElementById('ind-ema-s');
-      if(emaSEl) emaSEl.textContent = bullish ? 'Golden Cross' : 'Death Cross';
+      if(emaSEl) emaSEl.textContent = `MACD+Price+EMA blend${emaPriceConflict?' (EMA lagging)':''}`;
 
       const atrEl = document.getElementById('ind-atr');
       if(atrEl){
@@ -1178,6 +1296,30 @@ async function analyzeCoin(coin){
       }
       const chgSEl = document.getElementById('ind-chg-s');
       if(chgSEl) chgSEl.textContent = coin.chg>=0?'Bullish 24H':'Bearish 24H';
+
+      const macdEl = document.getElementById('ind-macd');
+      if(macdEl){
+        macdEl.textContent = macd.histogram>=0?'Positive':'Negative';
+        macdEl.style.color = macd.histogram>=0?'var(--green)':'var(--red)';
+      }
+      const macdSEl = document.getElementById('ind-macd-s');
+      if(macdSEl) macdSEl.textContent = macdRising?'Rising momentum':'Falling momentum';
+
+      const volEl = document.getElementById('ind-vol2');
+      if(volEl){
+        volEl.textContent = volRatio.toFixed(1)+'x avg';
+        volEl.style.color = volRatio>=1.5?'var(--green)':volRatio<0.6?'var(--red)':'var(--gold)';
+      }
+      const volSEl = document.getElementById('ind-vol2-s');
+      if(volSEl) volSEl.textContent = volRatio>=1.5?'High participation':volRatio<0.6?'Thin — caution':'Normal';
+
+      const tf1hEl = document.getElementById('ind-1h');
+      if(tf1hEl){
+        tf1hEl.textContent = trend1H || 'Unknown';
+        tf1hEl.style.color = trend1H==='Bullish'?'var(--green)':trend1H==='Bearish'?'var(--red)':'var(--t3)';
+      }
+      const tf1hSEl = document.getElementById('ind-1h-s');
+      if(tf1hSEl) tf1hSEl.textContent = trend1H ? (trend1H===trend?'Aligned with 15m':'Conflicts with 15m') : 'Fetch failed';
     }
 
   } catch(e){
@@ -1592,6 +1734,40 @@ function dmSetPct(pct){
   const avail = dmWallet.balance;
   const inp   = document.getElementById('dm-amount');
   if(inp){ inp.value = (avail * pct / 100).toFixed(2); dmCalcQty(); }
+}
+
+// ── Start a live demo trade directly from a History signal row ──
+function dmTradeFromHistory(historyId){
+  const h = signalHistory.find(x=>x.id===historyId);
+  if(!h){ dmToast('⚠️ Signal record nahi mila!','warn'); return; }
+
+  const side = h.sig.includes('Buy') ? 'buy' : 'sell';
+  const livePrice = dmGetPrice(h.sym);
+  if(!livePrice){ dmToast('⚠️ Live price load nahi hui — thoda wait karein!','warn'); return; }
+
+  // Switch to the Demo Trade tab so the user sees the position open
+  const demoTab = Array.from(document.querySelectorAll('.nav-tabs .tab')).find(t=>t.textContent.includes('Demo Trade'));
+  if(demoTab) show('demo', demoTab);
+
+  // Populate the order form to match this signal
+  const coinSel = document.getElementById('dm-coin');
+  if(coinSel) coinSel.value = h.sym;
+  const typeSel = document.getElementById('dm-type');
+  if(typeSel) typeSel.value = 'market';
+  dmToggleLimit();
+
+  // Use the signal's own SL/TP (ATR-based if available) instead of the live price,
+  // since the trade executes at current market price but the risk levels come from the signal.
+  const slInp = document.getElementById('dm-sl');
+  const tpInp = document.getElementById('dm-tp');
+  if(slInp) slInp.value = h.sl.toFixed(6);
+  if(tpInp) tpInp.value = h.tp1.toFixed(6);
+
+  dmUpdatePrice(); // refreshes price display + qty preview for the newly selected coin
+
+  // Fire the trade immediately at current market price
+  dmPlaceOrder(side);
+  dmToast(`⚡ Live trade started from History: ${side==='buy'?'BUY':'SELL'} ${h.sym} (signal was ${h.conf}% confidence)`, side==='buy'?'buy':'sell');
 }
 
 function dmPlaceOrder(side){
