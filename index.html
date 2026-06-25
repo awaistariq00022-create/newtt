@@ -993,13 +993,38 @@ function saveHistory(){
 
 function recordSignal(coin){
   const now = Date.now();
-  const recent = signalHistory.find(h=>h.sym===coin.sym&&h.sig===coin.sig&&(now-h.ts)<30*60*1000);
-  if(recent) return;
-
   const buy = coin.sig.includes('Buy');
+
+  // Find the most recent OPEN (still Pending) record for this coin + direction,
+  // regardless of how long ago it was created. As long as the signal direction
+  // hasn't flipped and the prior signal hasn't closed out, this is the same
+  // ongoing setup — we refresh it in place rather than creating a new row.
+  // This preserves the record's id/tradedFrom/outcome across scan cycles and
+  // page reloads, so the "traded from this signal" tick never gets orphaned.
+  const existing = signalHistory.find(h=>{
+    const hBuy = h.sig.includes('Buy');
+    return h.sym===coin.sym && hBuy===buy && h.outcome==='Pending';
+  });
+
   const hasATR = typeof coin.dynSL === 'number' && !isNaN(coin.dynSL);
   const sl  = hasATR ? coin.dynSL  : (buy ? coin.price*0.97 : coin.price*1.03);
   const tp1 = hasATR ? coin.dynTP1 : (buy ? coin.price*1.02 : coin.price*0.98);
+
+  if(existing){
+    // Refresh stats only if the scan is genuinely fresh (avoid refreshing on every
+    // 10s price tick — only on actual 15m-analysis scans, ~10 min apart).
+    if(now - existing.ts > 5*60*1000){
+      existing.conf = coin.conf;
+      existing.sig  = coin.sig; // e.g. "Buy" -> "Strong Buy" upgrade, same direction
+      existing.sl = sl;
+      existing.tp1 = tp1;
+      existing.atrPct = coin.atrPct || null;
+      existing.volLabel = coin.volLabel || null;
+      existing.lastRefreshed = now;
+      saveHistory();
+    }
+    return;
+  }
 
   signalHistory.unshift({
     id: now+'_'+coin.sym,
