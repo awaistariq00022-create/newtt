@@ -1091,8 +1091,10 @@ function renderHistory(){
       <div style="font-family:'JetBrains Mono',monospace;color:${h.pnl!=null?pnlColor:'var(--t3)'}">${pnlText}</div>
       <div class="${outcomeClass}">${h.outcome}</div>
       <div style="text-align:center">
-        <button onclick="dmTradeFromHistory('${h.id}')" title="Start live demo trade from this signal"
-          style="width:22px;height:22px;border-radius:5px;border:0.5px solid ${sigColor};background:${buy?'rgba(16,185,129,.12)':'rgba(239,68,68,.12)'};color:${sigColor};font-size:14px;font-weight:700;cursor:pointer;line-height:1;display:inline-flex;align-items:center;justify-content:center;font-family:Inter,sans-serif">+</button>
+        ${h.tradedFrom
+          ? `<span title="Trade already opened from this signal" style="width:22px;height:22px;border-radius:5px;border:0.5px solid var(--green);background:rgba(16,185,129,.18);color:var(--green);font-size:13px;font-weight:700;display:inline-flex;align-items:center;justify-content:center">✓</span>`
+          : `<button onclick="dmTradeFromHistory('${h.id}')" title="Start live demo trade from this signal"
+              style="width:22px;height:22px;border-radius:5px;border:0.5px solid ${sigColor};background:${buy?'rgba(16,185,129,.12)':'rgba(239,68,68,.12)'};color:${sigColor};font-size:14px;font-weight:700;cursor:pointer;line-height:1;display:inline-flex;align-items:center;justify-content:center;font-family:Inter,sans-serif">+</button>`}
       </div>
     </div>`;
   }).join('');
@@ -1767,6 +1769,19 @@ function dmTradeFromHistory(historyId){
 
   // Fire the trade immediately at current market price
   dmPlaceOrder(side);
+
+  // Mark this signal as traded — tick shows in History instead of the + button
+  h.tradedFrom = true;
+  h.tradedAt = Date.now();
+  saveHistory();
+  renderHistory();
+
+  // Link the newly opened position back to this history signal (for reference)
+  if(dmPositions.length){
+    dmPositions[dmPositions.length-1].fromHistoryId = h.id;
+    dmSave();
+  }
+
   dmToast(`⚡ Live trade started from History: ${side==='buy'?'BUY':'SELL'} ${h.sym} (signal was ${h.conf}% confidence)`, side==='buy'?'buy':'sell');
 }
 
