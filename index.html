@@ -197,10 +197,6 @@
   .dtrade-row:hover{background:var(--bg3)}
   .pnl-pos{color:var(--green);font-weight:600}
   .pnl-neg{color:var(--red);font-weight:600}
-  .cat-btn{padding:3px 7px;border-radius:4px;font-size:10px;color:var(--t3);cursor:pointer;border:0.5px solid var(--border);background:transparent;font-family:'Inter',sans-serif;transition:all .12s}
-  .cat-btn:hover{color:var(--t1);background:var(--bg3)}
-  .cat-btn.on{color:var(--blue);background:rgba(59,130,246,.15);border-color:rgba(59,130,246,.3)}
-  .coin-search-none{text-align:center;padding:20px 8px;font-size:11px;color:var(--t3)}
   .toast{position:fixed;bottom:20px;right:20px;padding:10px 18px;border-radius:8px;font-size:12px;font-weight:500;z-index:999;animation:slideup .3s ease;pointer-events:none}
   @keyframes slideup{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
   .toast.buy{background:rgba(16,185,129,.9);color:#fff}
@@ -253,22 +249,8 @@
 <div class="shell">
   <!-- SIDEBAR -->
   <div class="sidebar">
-    <div style="padding:8px 8px 4px">
-      <div style="position:relative">
-        <input id="coin-search" type="text" placeholder="🔍 Search coin..." oninput="filterCoins()" style="width:100%;padding:6px 10px 6px 28px;border-radius:7px;border:0.5px solid var(--border2);background:var(--bg2);color:var(--t1);font-size:11px;font-family:'Inter',sans-serif;outline:none">
-        <span style="position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:11px;pointer-events:none">🔍</span>
-      </div>
-      <div id="cat-filters" style="display:flex;flex-wrap:wrap;gap:3px;margin-top:5px">
-        <button class="cat-btn on" onclick="setCat('ALL',this)">All</button>
-        <button class="cat-btn" onclick="setCat('Layer1',this)">L1</button>
-        <button class="cat-btn" onclick="setCat('DeFi',this)">DeFi</button>
-        <button class="cat-btn" onclick="setCat('Meme',this)">Meme</button>
-        <button class="cat-btn" onclick="setCat('AI',this)">AI</button>
-        <button class="cat-btn" onclick="setCat('Gaming',this)">Game</button>
-      </div>
-    </div>
-    <div class="sb-head" id="sb-coin-count" style="padding:4px 12px 4px">All Coins</div>
-    <div id="coin-list" style="overflow-y:auto;flex:1"></div>
+    <div class="sb-head">Top 10 Coins</div>
+    <div id="coin-list"></div>
 
     <!-- Fear & Greed (live, from Doc1) -->
     <div class="fg-box">
@@ -300,31 +282,15 @@
     <div class="view on" id="view-dashboard">
       <div class="strip">
         <div class="stat"><div class="stat-l">Total Market Cap</div><div class="stat-v" style="color:var(--blue)" id="s-mcap">Loading…</div><div class="stat-s" id="s-mcap-c">Fetching…</div></div>
-        <div class="stat"><div class="stat-l">Next AI Scan In</div><div class="stat-v" style="color:var(--gold)" id="next-scan">10:00</div><div class="stat-s" id="scan-count-lbl">52 coins being scanned</div></div>
+        <div class="stat"><div class="stat-l">Next AI Scan In</div><div class="stat-v" style="color:var(--gold)" id="next-scan">10:00</div><div class="stat-s">Scanning Top 10 coins</div></div>
         <div class="stat"><div class="stat-l">Active Signals</div><div class="stat-v" style="color:var(--green)" id="s-sigs">0</div><div class="stat-s">Based on live TA</div></div>
         <div class="stat"><div class="stat-l">News Sentiment</div><div class="stat-v" style="color:var(--purple)" id="s-newssent">—</div><div class="stat-s" id="s-newssent-s">Analyzing…</div></div>
       </div>
 
       <div class="card">
         <div class="card-head">
-          <div class="card-title">📈 Market Overview — <span id="tbl-count">52</span> Coins Live</div>
-          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-            <input id="tbl-search" type="text" placeholder="Filter..." oninput="filterTable()" style="padding:4px 8px;border-radius:5px;border:0.5px solid var(--border2);background:var(--bg3);color:var(--t1);font-size:11px;font-family:'Inter',sans-serif;outline:none;width:110px">
-            <select id="tbl-cat" onchange="filterTable()" style="padding:4px 7px;border-radius:5px;border:0.5px solid var(--border2);background:var(--bg3);color:var(--t2);font-size:11px;font-family:'Inter',sans-serif;outline:none">
-              <option value="ALL">All Categories</option>
-              <option value="Layer1">Layer 1</option>
-              <option value="DeFi">DeFi</option>
-              <option value="Meme">Meme</option>
-              <option value="AI">AI</option>
-              <option value="Gaming">Gaming</option>
-            </select>
-            <select id="tbl-sig" onchange="filterTable()" style="padding:4px 7px;border-radius:5px;border:0.5px solid var(--border2);background:var(--bg3);color:var(--t2);font-size:11px;font-family:'Inter',sans-serif;outline:none">
-              <option value="ALL">All Signals</option>
-              <option value="Buy">Buy Only</option>
-              <option value="Sell">Sell Only</option>
-            </select>
-            <button class="btn" onclick="runLiveAnalysis()">🔄 Scan All</button>
-          </div>
+          <div class="card-title">📈 Market Overview — Live Prices &amp; Algo Score</div>
+          <button class="btn" onclick="runLiveAnalysis()">🔄 Force Scan</button>
         </div>
         <div class="th"><div>Coin</div><div>Price</div><div>24H</div><div>Volume</div><div>Market Cap</div><div>AI Score</div><div>Signal</div><div>Confidence</div></div>
         <div id="market-table"><div class="loading"><div class="spinner"></div>Fetching live data…</div></div>
@@ -367,7 +333,16 @@
             </div>
           </div>
           <select id="sym-sel" onchange="changeSym(this.value)" style="background:var(--bg3);color:var(--t1);border:0.5px solid var(--border2);border-radius:6px;padding:5px 10px;font-size:11px;font-family:'Inter',sans-serif">
-            <!-- Populated dynamically -->
+            <option value="BTCUSDT">BTC/USDT</option>
+            <option value="ETHUSDT">ETH/USDT</option>
+            <option value="SOLUSDT">SOL/USDT</option>
+            <option value="BNBUSDT">BNB/USDT</option>
+            <option value="XRPUSDT">XRP/USDT</option>
+            <option value="ADAUSDT">ADA/USDT</option>
+            <option value="DOGEUSDT">DOGE/USDT</option>
+            <option value="TRXUSDT">TRX/USDT</option>
+            <option value="LINKUSDT">LINK/USDT</option>
+            <option value="AVAXUSDT">AVAX/USDT</option>
           </select>
         </div>
         <div style="padding:10px">
@@ -477,7 +452,16 @@
               <div class="form-row">
                 <div class="form-label">Select Coin</div>
                 <select class="form-select" id="dm-coin" onchange="dmUpdatePrice()">
-                  <!-- Populated dynamically by JS -->
+                  <option value="BTC">BTC — Bitcoin</option>
+                  <option value="ETH">ETH — Ethereum</option>
+                  <option value="SOL">SOL — Solana</option>
+                  <option value="BNB">BNB — BNB</option>
+                  <option value="XRP">XRP — XRP</option>
+                  <option value="ADA">ADA — Cardano</option>
+                  <option value="DOGE">DOGE — Dogecoin</option>
+                  <option value="TRX">TRX — TRON</option>
+                  <option value="LINK">LINK — Chainlink</option>
+                  <option value="AVAX">AVAX — Avalanche</option>
                 </select>
               </div>
 
@@ -611,68 +595,17 @@
 // ═══════════════════════════════════════════════════════════
 // STATE — Coins
 // ═══════════════════════════════════════════════════════════
-function mkCoin(sym,name,color,bg,cat){
-  return {sym,name,color,bg,cat,price:0,chg:0,vol:'0',mcap:'—',score:50,sig:'Analyzing...',conf:50,trend:'Neutral',reason:'Waiting for live data...',tags:[],rsi:null,analyzed:false};
-}
 const COINS = [
-  // ── Layer 1 ──
-  mkCoin('BTC','Bitcoin',   '#f7931a','rgba(247,147,26,.15)','Layer1'),
-  mkCoin('ETH','Ethereum',  '#627eea','rgba(98,126,234,.15)','Layer1'),
-  mkCoin('SOL','Solana',    '#9945ff','rgba(153,69,255,.15)','Layer1'),
-  mkCoin('BNB','BNB',       '#f0b90b','rgba(240,185,11,.15)','Layer1'),
-  mkCoin('XRP','XRP',       '#00aae4','rgba(0,170,228,.15)', 'Layer1'),
-  mkCoin('ADA','Cardano',   '#3cc8c8','rgba(60,200,200,.15)','Layer1'),
-  mkCoin('TRX','TRON',      '#ef0027','rgba(239,0,39,.15)',  'Layer1'),
-  mkCoin('AVAX','Avalanche','#e84142','rgba(232,65,66,.15)', 'Layer1'),
-  mkCoin('DOT','Polkadot',  '#e6007a','rgba(230,0,122,.15)', 'Layer1'),
-  mkCoin('MATIC','Polygon', '#8247e5','rgba(130,71,229,.15)','Layer1'),
-  mkCoin('ATOM','Cosmos',   '#6f7390','rgba(111,115,144,.15)','Layer1'),
-  mkCoin('NEAR','NEAR',     '#00c1de','rgba(0,193,222,.15)', 'Layer1'),
-  mkCoin('FTM','Fantom',    '#1969ff','rgba(25,105,255,.15)','Layer1'),
-  mkCoin('ALGO','Algorand', '#ffffff','rgba(200,200,200,.1)','Layer1'),
-  mkCoin('ICP','Internet Computer','#29abe2','rgba(41,171,226,.15)','Layer1'),
-  mkCoin('APT','Aptos',     '#30d5c8','rgba(48,213,200,.15)','Layer1'),
-  mkCoin('SUI','Sui',       '#6fbcf0','rgba(111,188,240,.15)','Layer1'),
-  mkCoin('TON','Toncoin',   '#0088cc','rgba(0,136,204,.15)', 'Layer1'),
-  mkCoin('HBAR','Hedera',   '#00babc','rgba(0,186,188,.15)', 'Layer1'),
-  mkCoin('VET','VeChain',   '#15bdff','rgba(21,189,255,.15)','Layer1'),
-  // ── DeFi ──
-  mkCoin('UNI','Uniswap',   '#ff007a','rgba(255,0,122,.15)', 'DeFi'),
-  mkCoin('LINK','Chainlink','#2a5ada','rgba(42,90,218,.15)',  'DeFi'),
-  mkCoin('AAVE','Aave',     '#b6509e','rgba(182,80,158,.15)','DeFi'),
-  mkCoin('MKR','Maker',     '#4fa89b','rgba(79,168,155,.15)','DeFi'),
-  mkCoin('SNX','Synthetix', '#00d1ff','rgba(0,209,255,.15)', 'DeFi'),
-  mkCoin('CRV','Curve',     '#fd0000','rgba(253,0,0,.1)',    'DeFi'),
-  mkCoin('LDO','Lido DAO',  '#00a3ff','rgba(0,163,255,.15)', 'DeFi'),
-  mkCoin('1INCH','1inch',   '#d82122','rgba(216,33,34,.15)', 'DeFi'),
-  mkCoin('COMP','Compound', '#00d395','rgba(0,211,149,.15)', 'DeFi'),
-  mkCoin('GMX','GMX',       '#4d88ef','rgba(77,136,239,.15)','DeFi'),
-  mkCoin('DYDX','dYdX',     '#6966ff','rgba(105,102,255,.15)','DeFi'),
-  mkCoin('INJ','Injective',  '#00b4d8','rgba(0,180,216,.15)', 'DeFi'),
-  // ── Meme ──
-  mkCoin('DOGE','Dogecoin', '#c2a633','rgba(194,166,51,.15)','Meme'),
-  mkCoin('SHIB','Shiba Inu','#ffa409','rgba(255,164,9,.15)', 'Meme'),
-  mkCoin('PEPE','Pepe',     '#3ab549','rgba(58,181,73,.15)', 'Meme'),
-  mkCoin('WIF','dogwifhat', '#b5835a','rgba(181,131,90,.15)','Meme'),
-  mkCoin('BONK','Bonk',     '#f5a623','rgba(245,166,35,.15)','Meme'),
-  mkCoin('FLOKI','Floki',   '#f5b919','rgba(245,185,25,.15)','Meme'),
-  mkCoin('NEIRO','Neiro',   '#e86e4d','rgba(232,110,77,.15)','Meme'),
-  mkCoin('BOME','BookOfMeme','#9b59b6','rgba(155,89,182,.15)','Meme'),
-  // ── AI ──
-  mkCoin('FET','Fetch.ai',  '#1a1f2e','rgba(80,140,255,.2)', 'AI'),
-  mkCoin('RNDR','Render',   '#d83b3b','rgba(216,59,59,.15)', 'AI'),
-  mkCoin('GRT','The Graph', '#6f4cba','rgba(111,76,186,.15)','AI'),
-  mkCoin('AGIX','SingularityNET','#5f9ea0','rgba(95,158,160,.15)','AI'),
-  mkCoin('TAO','Bittensor', '#57cc99','rgba(87,204,153,.15)','AI'),
-  mkCoin('WLD','Worldcoin', '#1a1a1a','rgba(120,120,255,.15)','AI'),
-  mkCoin('OCEAN','Ocean',   '#ff4092','rgba(255,64,146,.15)','AI'),
-  // ── Gaming ──
-  mkCoin('AXS','Axie Infinity','#0055d5','rgba(0,85,213,.15)','Gaming'),
-  mkCoin('SAND','The Sandbox','#04adef','rgba(4,173,239,.15)','Gaming'),
-  mkCoin('MANA','Decentraland','#ff2d55','rgba(255,45,85,.15)','Gaming'),
-  mkCoin('ENJ','Enjin',     '#7866d5','rgba(120,102,213,.15)','Gaming'),
-  mkCoin('IMX','ImmutableX','#17b3a3','rgba(23,179,163,.15)','Gaming'),
-  mkCoin('GALA','Gala',     '#0099ff','rgba(0,153,255,.15)', 'Gaming'),
+  {sym:'BTC',name:'Bitcoin',   color:'#f7931a',bg:'rgba(247,147,26,.15)', price:0, chg:0, vol:'0', mcap:'—', score:50, sig:'Analyzing...', conf:50, trend:'Neutral', reason:'Waiting for live data...', tags:[]},
+  {sym:'ETH',name:'Ethereum',  color:'#627eea',bg:'rgba(98,126,234,.15)', price:0, chg:0, vol:'0', mcap:'—', score:50, sig:'Analyzing...', conf:50, trend:'Neutral', reason:'Waiting for live data...', tags:[]},
+  {sym:'SOL',name:'Solana',    color:'#9945ff',bg:'rgba(153,69,255,.15)', price:0, chg:0, vol:'0', mcap:'—', score:50, sig:'Analyzing...', conf:50, trend:'Neutral', reason:'Waiting for live data...', tags:[]},
+  {sym:'BNB',name:'BNB',       color:'#f0b90b',bg:'rgba(240,185,11,.15)', price:0, chg:0, vol:'0', mcap:'—', score:50, sig:'Analyzing...', conf:50, trend:'Neutral', reason:'Waiting for live data...', tags:[]},
+  {sym:'XRP',name:'XRP',       color:'#00aae4',bg:'rgba(0,170,228,.15)',  price:0, chg:0, vol:'0', mcap:'—', score:50, sig:'Analyzing...', conf:50, trend:'Neutral', reason:'Waiting for live data...', tags:[]},
+  {sym:'ADA',name:'Cardano',   color:'#3cc8c8',bg:'rgba(60,200,200,.15)', price:0, chg:0, vol:'0', mcap:'—', score:50, sig:'Analyzing...', conf:50, trend:'Neutral', reason:'Waiting for live data...', tags:[]},
+  {sym:'DOGE',name:'Dogecoin', color:'#c2a633',bg:'rgba(194,166,51,.15)', price:0, chg:0, vol:'0', mcap:'—', score:50, sig:'Analyzing...', conf:50, trend:'Neutral', reason:'Waiting for live data...', tags:[]},
+  {sym:'TRX',name:'TRON',      color:'#ef0027',bg:'rgba(239,0,39,.15)',   price:0, chg:0, vol:'0', mcap:'—', score:50, sig:'Analyzing...', conf:50, trend:'Neutral', reason:'Waiting for live data...', tags:[]},
+  {sym:'LINK',name:'Chainlink',color:'#2a5ada',bg:'rgba(42,90,218,.15)',  price:0, chg:0, vol:'0', mcap:'—', score:50, sig:'Analyzing...', conf:50, trend:'Neutral', reason:'Waiting for live data...', tags:[]},
+  {sym:'AVAX',name:'Avalanche',color:'#e84142',bg:'rgba(232,65,66,.15)',  price:0, chg:0, vol:'0', mcap:'—', score:50, sig:'Analyzing...', conf:50, trend:'Neutral', reason:'Waiting for live data...', tags:[]},
 ];
 
 let threshold = 60;
@@ -680,31 +613,7 @@ let activeCoin = 0;
 let currentSym = 'BTCUSDT';
 let currentTF = '60';
 let scanCountdown = 600;
-let activeCategory = 'ALL';
-let searchQuery = '';
 const TF_MAP = {'5m':'5','15m':'15','1H':'60','4H':'240','1D':'D'};
-
-function getFilteredCoins(){
-  return COINS.filter(c=>{
-    const matchCat = activeCategory==='ALL' || c.cat===activeCategory;
-    const matchSearch = !searchQuery || c.sym.toLowerCase().includes(searchQuery) || c.name.toLowerCase().includes(searchQuery);
-    return matchCat && matchSearch;
-  });
-}
-
-function filterCoins(){
-  searchQuery = document.getElementById('coin-search').value.toLowerCase().trim();
-  renderCoins();
-}
-
-function setCat(cat, el){
-  activeCategory = cat;
-  document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('on'));
-  el.classList.add('on');
-  searchQuery = '';
-  document.getElementById('coin-search').value = '';
-  renderCoins();
-}
 
 // News + sentiment state (CryptoPanic, from Doc1)
 let globalNewsItems = [];
@@ -901,24 +810,15 @@ function updateOrderBookUI(rawBids, rawAsks){
 // COIN SIDEBAR + MARKET TABLE
 // ═══════════════════════════════════════════════════════════
 function renderCoins(){
-  const filtered = getFilteredCoins();
-  const lbl = document.getElementById('sb-coin-count');
-  if(lbl) lbl.textContent = filtered.length + ' Coin' + (filtered.length!==1?'s':'') + (activeCategory!=='ALL'?' · '+activeCategory:'');
-  if(!filtered.length){
-    document.getElementById('coin-list').innerHTML='<div class="coin-search-none">No coins found</div>';
-    return;
-  }
-  document.getElementById('coin-list').innerHTML=filtered.map((c,fi)=>{
-    const gi = COINS.indexOf(c);
-    return `<div class="coin-row ${gi===activeCoin?'active':''}" onclick="selectCoin(${gi})">
+  document.getElementById('coin-list').innerHTML=COINS.map((c,i)=>`
+    <div class="coin-row ${i===activeCoin?'active':''}" onclick="selectCoin(${i})">
       <div class="avatar" style="background:${c.bg};color:${c.color}">${c.sym[0]}</div>
       <div class="ci"><div class="csym">${c.sym}</div><div class="cname">${c.name}</div></div>
       <div class="cr">
         <div class="cprice">${fmtPrice(c.price)}</div>
         <div class="cchg ${c.chg>=0?'up':'dn'}">${c.price?(c.chg>=0?'+':'')+c.chg.toFixed(2)+'%':'—'}</div>
       </div>
-    </div>`;
-  }).join('');
+    </div>`).join('');
 }
 
 function selectCoin(i){
@@ -929,28 +829,8 @@ function selectCoin(i){
   if(rsiEl) rsiEl.textContent = COINS[i].rsi ? COINS[i].rsi : 'Wait..';
 }
 
-function filterTable(){
-  renderTable();
-}
-
 function renderTable(){
-  const tblSearch = (document.getElementById('tbl-search')||{}).value||'';
-  const tblCat    = (document.getElementById('tbl-cat')||{}).value||'ALL';
-  const tblSig    = (document.getElementById('tbl-sig')||{}).value||'ALL';
-  const q = tblSearch.toLowerCase();
-
-  const filtered = COINS.filter(c=>{
-    if(tblCat!=='ALL' && c.cat!==tblCat) return false;
-    if(q && !c.sym.toLowerCase().includes(q) && !c.name.toLowerCase().includes(q)) return false;
-    if(tblSig==='Buy' && !c.sig.includes('Buy')) return false;
-    if(tblSig==='Sell' && !c.sig.includes('Sell')) return false;
-    return true;
-  });
-
-  const tblCount = document.getElementById('tbl-count');
-  if(tblCount) tblCount.textContent = filtered.length;
-
-  document.getElementById('market-table').innerHTML=filtered.map(c=>{
+  document.getElementById('market-table').innerHTML=COINS.map(c=>{
     const sig=c.conf>=threshold?c.sig:'No Trade';
     const sc=c.score>=75?'var(--green)':c.score>=60?'var(--gold)':'var(--red)';
     const [sc2,bg2]=sig==='Strong Buy'?['#10b981','rgba(16,185,129,.15)']:
@@ -958,25 +838,21 @@ function renderTable(){
                      sig==='Strong Sell'?['#ef4444','rgba(239,68,68,.15)']:
                      sig==='Sell'?['#f87171','rgba(248,113,113,.1)']:
                      ['#f59e0b','rgba(245,158,11,.1)'];
-    const catColor={'Layer1':'#3b82f6','DeFi':'#8b5cf6','Meme':'#f59e0b','AI':'#10b981','Gaming':'#ec4899'}[c.cat]||'#64748b';
     return `<div class="tr">
       <div class="cc">
         <div class="avatar" style="background:${c.bg};color:${c.color};width:22px;height:22px;font-size:9px">${c.sym[0]}</div>
-        <div>
-          <div style="font-size:12px;font-weight:500">${c.sym}</div>
-          <div style="font-size:9px;color:${catColor};font-weight:500">${c.cat}</div>
-        </div>
+        <div><div style="font-size:12px;font-weight:500">${c.sym}</div><div style="font-size:10px;color:var(--t3)">${c.name}</div></div>
       </div>
       <div style="font-family:'JetBrains Mono',monospace;font-size:12px">${fmtPrice(c.price)}</div>
-      <div class="${c.chg>=0?'up':'dn'}">${c.price?(c.chg>=0?'+':'')+c.chg.toFixed(2)+'%':'—'}</div>
+      <div class="${c.chg>=0?'up':'dn'}">${c.chg>=0?'+':''}${c.chg.toFixed(2)}%</div>
       <div style="color:var(--t2)">${c.vol}</div>
       <div style="color:var(--t2)">$${c.mcap}</div>
       <div class="sbar"><div class="sb"><div class="sf" style="width:${c.score}%;background:${sc}"></div></div><span style="font-size:11px;font-weight:500;color:${sc}">${c.score}</span></div>
-      <div><span class="pill" style="background:${bg2};color:${sc2}">${c.analyzed?sig:'Pending'}</span></div>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--t2)">${c.analyzed?c.conf+'%':'—'}</div>
+      <div><span class="pill" style="background:${bg2};color:${sc2}">${sig}</span></div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--t2)">${c.conf}%</div>
     </div>`;
-  }).join('') || '<div style="padding:20px;text-align:center;color:var(--t3)">No coins match this filter</div>';
-  const n=COINS.filter(c=>c.conf>=threshold&&c.sig!=='No Trade'&&c.sig!=='Analyzing...'&&c.analyzed).length;
+  }).join('');
+  const n=COINS.filter(c=>c.conf>=threshold&&c.sig!=='No Trade'&&c.sig!=='Analyzing...').length;
   document.getElementById('s-sigs').textContent=n;
 }
 
@@ -1075,17 +951,175 @@ function calculateVolumeRatio(klines, lookback=20){
 // Multi-timeframe confirmation — fetches the 1H trend (EMA20 vs EMA50 on 1H candles)
 // so a 15m signal can be checked against the bigger picture. Trading WITH the 1H
 // trend is safer than against it; mismatches reduce confidence rather than block the signal.
-async function fetch1HTrend(sym){
+async function fetch1HCandles(sym){
   try{
     const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${sym}USDT&interval=1h&limit=60`);
     const data = await res.json();
-    const closes = data.map(d=>parseFloat(d[4]));
-    const ema20 = calculateEMA(closes.slice(-30), 20);
-    const ema50 = calculateEMA(closes, 50);
-    return ema20 > ema50 ? 'Bullish' : 'Bearish';
+    return data; // raw Binance klines: [openTime, open, high, low, close, volume, ...]
   }catch(e){
-    return null; // unknown — treated as neutral, no penalty/bonus applied
+    return null;
   }
+}
+
+// Simple Moving Average — used for the 20-period volume average in the gated signal engine
+function calcSMA(values, period){
+  if(!values || values.length===0) return 0;
+  const slice = values.slice(-period);
+  return slice.reduce((a,b)=>a+b,0) / slice.length;
+}
+
+// Trend direction for one timeframe — requires BOTH the EMA20/50 relationship
+// AND price to be on the same side of EMA50. This avoids calling a trend
+// "Bullish" purely off a stale EMA cross that price has since rejected
+// (the exact lagging-EMA problem flagged earlier).
+function getTrendDirection(closes){
+  if(!closes || closes.length < 50) return 'Neutral';
+  const price = closes[closes.length-1];
+  const ema20 = calculateEMA(closes.slice(-50), 20);
+  const ema50 = calculateEMA(closes, 50);
+  if(ema20 > ema50 && price > ema50) return 'Bullish';
+  if(ema20 < ema50 && price < ema50) return 'Bearish';
+  return 'Neutral';
+}
+
+/**
+ * ============================================================================
+ * calculateAdvancedSignal — GATED, CONFLUENCE-SCORED SIGNAL ENGINE
+ * ============================================================================
+ * Replaces "trust a single EMA/RSI cross" with three hard gates that must ALL
+ * pass before any signal is even considered, then a 4-factor confluence score:
+ *
+ *   GATE 1 — Multi-Timeframe Confluence: 15m and 1H trend must agree.
+ *   GATE 2 — Volume/Liquidity: current volume must be >= 20-period average.
+ *   GATE 3 — Volatility (ATR): ATR-as-%-of-price must clear a minimum —
+ *            otherwise the market is too quiet/ranging and crossovers fake out.
+ *
+ *   SCORING (only runs if all 3 gates pass), each worth +1:
+ *     - RSI oversold(<30)/overbought(>70) in the trade direction
+ *     - MACD histogram sign + rising/falling in the trade direction
+ *     - Price vs 50 EMA, direction-aligned
+ *     - News/sentiment aligned with direction
+ *   score >= 3 -> Strong Buy/Sell | score == 2 -> Buy/Sell | score < 2 -> Neutral
+ *
+ * Takes the SAME raw Binance kline arrays already being fetched elsewhere in
+ * this file, so no extra parsing layer is needed at the call site.
+ * ============================================================================
+ */
+function calculateAdvancedSignal(marketData, options = {}){
+  if(!marketData || typeof marketData !== 'object'){
+    return { symbol:null, signal:'Neutral', score:0, maxScore:4, direction:null,
+      gates:{multiTimeframe:false, volume:false, volatility:false},
+      breakdown:{rsi:false,macdHistogram:false,emaCross:false,sentiment:false},
+      meta:{}, reason:'No market data provided.' };
+  }
+  const { symbol, shortKlines, higherKlines, sentimentScore = 0 } = marketData;
+  const { minATRPct = 0.3, volumeLookback = 20 } = options;
+
+  const fail = (reason, extra={}) => ({
+    symbol, signal: 'Neutral', score: 0, maxScore: 4, direction: null,
+    gates: { multiTimeframe:false, volume:false, volatility:false },
+    breakdown: { rsi:false, macdHistogram:false, emaCross:false, sentiment:false },
+    meta: extra, reason
+  });
+
+  if(!Array.isArray(shortKlines) || shortKlines.length < 60) return fail('Insufficient short-timeframe data.');
+  if(!Array.isArray(higherKlines) || higherKlines.length < 50) return fail('Insufficient higher-timeframe data.');
+
+  const closesShort  = shortKlines.map(k=>parseFloat(k[4])).filter(v=>!isNaN(v)&&v>0);
+  const closesHigher = higherKlines.map(k=>parseFloat(k[4])).filter(v=>!isNaN(v)&&v>0);
+  const volumesShort = shortKlines.map(k=>parseFloat(k[5])||0);
+
+  if(closesShort.length < 60 || closesHigher.length < 50) return fail('Candle data has too many invalid values.');
+
+  const currentPrice  = closesShort[closesShort.length-1];
+  const currentVolume = volumesShort[volumesShort.length-1];
+  if(!currentPrice || currentPrice<=0) return fail('Invalid current price.');
+
+  // GATE 1 — Multi-timeframe confluence
+  const trendShort  = getTrendDirection(closesShort);
+  const trendHigher = getTrendDirection(closesHigher);
+  const mtfAligned  = trendShort!=='Neutral' && trendShort===trendHigher;
+  if(!mtfAligned){
+    return fail(`Multi-timeframe conflict: 15m is "${trendShort}", 1H is "${trendHigher}" — both must align.`,
+      { trendShort, trendHigher, currentPrice });
+  }
+  const direction = trendShort;
+  const isBullish = direction === 'Bullish';
+
+  // GATE 2 — Volume/liquidity
+  const avgVolume = calcSMA(volumesShort.slice(0,-1), volumeLookback);
+  const volumeOK  = avgVolume>0 && currentVolume>=avgVolume;
+  if(!volumeOK){
+    return { symbol, signal:'Neutral', score:0, maxScore:4, direction:null,
+      gates:{multiTimeframe:true, volume:false, volatility:false},
+      breakdown:{rsi:false,macdHistogram:false,emaCross:false,sentiment:false},
+      meta:{trendShort,trendHigher,currentVolume,avgVolume,currentPrice},
+      reason:`Thin liquidity: volume (${currentVolume.toFixed(2)}) is below the ${volumeLookback}-period average (${avgVolume.toFixed(2)}).` };
+  }
+
+  // GATE 3 — Volatility (ATR)
+  const atrKlines = shortKlines;
+  const atr = calculateATR(atrKlines, 14);
+  const atrPct = (atr/currentPrice)*100;
+  const volatilityOK = atrPct >= minATRPct;
+  if(!volatilityOK){
+    return { symbol, signal:'Neutral', score:0, maxScore:4, direction:null,
+      gates:{multiTimeframe:true, volume:true, volatility:false},
+      breakdown:{rsi:false,macdHistogram:false,emaCross:false,sentiment:false},
+      meta:{trendShort,trendHigher,currentVolume,avgVolume,atr,atrPct,currentPrice},
+      reason:`Low volatility: ATR is only ${atrPct.toFixed(2)}% of price (min ${minATRPct}%) — market is range-bound, crossover signals suppressed.` };
+  }
+
+  // SCORING — all 3 gates passed
+  const rsi  = calculateRSI(closesShort, 14);
+  const macd = calculateMACDSeries(closesShort);
+  const ema50Short = calculateEMA(closesShort, 50);
+
+  let score = 0;
+  const breakdown = { rsi:false, macdHistogram:false, emaCross:false, sentiment:false };
+
+  const rsiPoint = isBullish ? rsi<30 : rsi>70;
+  if(rsiPoint){ score+=1; breakdown.rsi=true; }
+
+  const macdPoint = isBullish
+    ? (macd.histogram>0 && macd.histogram>=macd.prevHistogram)
+    : (macd.histogram<0 && macd.histogram<=macd.prevHistogram);
+  if(macdPoint){ score+=1; breakdown.macdHistogram=true; }
+
+  const emaPoint = isBullish ? currentPrice>ema50Short : currentPrice<ema50Short;
+  if(emaPoint){ score+=1; breakdown.emaCross=true; }
+
+  const sentimentPoint = isBullish ? sentimentScore>0 : sentimentScore<0;
+  if(sentimentPoint){ score+=1; breakdown.sentiment=true; }
+
+  let signal = 'Neutral';
+  if(score>=3) signal = isBullish ? 'Strong Buy' : 'Strong Sell';
+  else if(score===2) signal = isBullish ? 'Buy' : 'Sell';
+
+  return {
+    symbol, signal, score, maxScore:4, direction,
+    gates:{multiTimeframe:true, volume:true, volatility:true},
+    breakdown,
+    meta:{ trendShort, trendHigher, rsi, macdHistogram:macd.histogram, ema50Short,
+           currentPrice, currentVolume, avgVolume, atr, atrPct, sentimentScore, volRatio: avgVolume>0?currentVolume/avgVolume:1 },
+    reason: score>=2
+      ? `${direction} confluence confirmed on both timeframes, volume & volatility gates passed, score ${score}/4.`
+      : `Gates passed but confluence score only ${score}/4 — not enough confirming factors.`
+  };
+}
+
+// Raw signed news-sentiment score for one coin (positive = bullish news, negative = bearish,
+// 0 = no relevant news). Used as the "sentiment" factor input to calculateAdvancedSignal.
+function coinNewsSentimentScore(coinSym){
+  const relevant = globalNewsItems.filter(n=>n.coin===coinSym||n.coin==='ALL');
+  if(!relevant.length) return 0;
+  let score = 0;
+  relevant.forEach(n=>{
+    const w = (n.impact||50)/100;
+    if(n.sent==='bull') score += w;
+    else if(n.sent==='bear') score -= w;
+  });
+  return score;
 }
 
 // News-sentiment bonus applied on top of the RSI/EMA confidence
@@ -1260,129 +1294,85 @@ async function analyzeCoin(coin){
     const closes = data.map(d => parseFloat(d[4]));
     const currentPrice = closes[closes.length - 1];
 
+    // Indicators needed for display + ATR-based SL/TP sizing (kept as before)
     const rsi = calculateRSI(closes, 14);
     const ema20 = calculateEMA(closes.slice(-50), 20);
     const ema50 = calculateEMA(closes.slice(-100), 50);
     const atr = calculateATR(data, 14);
-    const atrPct = (atr / currentPrice) * 100; // ATR as % of price — true volatility measure per coin
+    const atrPct = (atr / currentPrice) * 100;
     const macd = calculateMACDSeries(closes);
     const volRatio = calculateVolumeRatio(data, 20);
+    const macdRising = macd.histogram > macd.prevHistogram;
+
+    // ── Fetch the 1H confirmation candles and run the gated, confluence-scored engine ──
+    const higherKlines = await fetch1HCandles(coin.sym);
+    const sentimentScore = coinNewsSentimentScore(coin.sym);
+
+    const adv = calculateAdvancedSignal({
+      symbol: coin.sym,
+      shortKlines: data,
+      higherKlines: higherKlines,
+      sentimentScore
+    });
 
     let confidence = 50;
     let signal = 'No Trade';
     let trend = 'Sideways';
     let reason = '';
     let tags = ['15m Klines'];
+    let bullish = adv.direction === 'Bullish';
 
-    // ── Direction: blend EMA (slow, stable) with MACD histogram (fast, catches
-    // turns earlier) and the raw 24h move, instead of trusting EMA cross alone.
-    // This fixes the "EMA says bullish while price is actually falling" lag issue.
-    const emaBullish  = ema20 > ema50;
-    const macdBullish = macd.histogram > 0;
-    const macdRising  = macd.histogram > macd.prevHistogram;
-    const chg = coin.chg || 0;
-    const chgAbs = Math.abs(chg);
-
-    // Each component votes bull(+1)/bear(-1); price momentum gets double weight
-    // since it's the most current information we have.
-    let directionVotes = (emaBullish?1:-1) + (macdBullish?1:-1) + (chg>=0?2:-2);
-    let bullish = directionVotes > 0;
-
-    // If EMA and price-momentum directly disagree, that's the lagging-EMA problem —
-    // trust price action and flag it rather than silently following the stale EMA.
-    const emaPriceConflict = (emaBullish && chg < -0.3) || (!emaBullish && chg > 0.3);
-
-    const momentumBonus = Math.min(20, Math.round(chgAbs * 4)); // up to +20 pts
-
-    if(bullish){
-      trend = 'Bullish';
-      confidence += 10 + momentumBonus;
-      if(rsi < 35){
-        signal = 'Strong Buy'; confidence += 25;
-        reason = `Bullish bias (price momentum + MACD) with RSI oversold at ${rsi.toFixed(1)}. Good bounce setup.`;
-        tags.push('Oversold','MACD','RSI');
-      } else if(rsi < 65){
-        signal = chgAbs>=1.5 ? 'Strong Buy' : 'Buy';
-        confidence += 15;
-        reason = `Momentum is bullish (24H ${chg>=0?'+':''}${chg.toFixed(2)}%), MACD histogram ${macdBullish?'positive':'turning up'}. RSI at ${rsi.toFixed(1)} confirms continuation.`;
-        tags.push('Uptrend','MACD');
-      } else {
-        signal = 'Buy'; confidence += 5;
-        reason = `Bullish bias but RSI is high (${rsi.toFixed(1)}) — overbought caution, smaller position advised.`;
-        tags.push('Overbought Caution');
-      }
+    if(!adv.gates.multiTimeframe){
+      // GATE 1 blocked — timeframes disagree, no trade regardless of any other indicator
+      signal = 'No Trade'; trend = 'Sideways';
+      confidence = 35;
+      reason = adv.reason;
+      tags = ['MTF Conflict', '15m Klines'];
+    } else if(!adv.gates.volume){
+      // GATE 2 blocked — thin liquidity, suppress the trend signal
+      signal = 'No Trade'; trend = adv.meta.trendShort || 'Sideways';
+      confidence = 38;
+      reason = adv.reason;
+      tags = ['Thin Volume', '15m Klines'];
+    } else if(!adv.gates.volatility){
+      // GATE 3 blocked — range-bound/low-volatility, crossover would likely fake out
+      signal = 'No Trade'; trend = adv.meta.trendShort || 'Sideways';
+      confidence = 40;
+      reason = adv.reason;
+      tags = ['Low Volatility', '15m Klines'];
     } else {
-      trend = 'Bearish';
-      confidence += 10 + momentumBonus;
-      if(rsi > 65){
-        signal = 'Strong Sell'; confidence += 25;
-        reason = `Bearish bias (price momentum + MACD) with RSI overbought at ${rsi.toFixed(1)}. Heavy rejection expected.`;
-        tags.push('Overbought','MACD','RSI');
-      } else if(rsi > 35){
-        signal = chgAbs>=1.5 ? 'Strong Sell' : 'Sell';
-        confidence += 15;
-        reason = `Momentum is bearish (24H ${chg.toFixed(2)}%), MACD histogram ${!macdBullish?'negative':'turning down'}. RSI at ${rsi.toFixed(1)} confirms downside continuation.`;
-        tags.push('Downtrend','MACD');
+      // All 3 gates passed — use the confluence-scored signal as the base call
+      trend = adv.direction;
+      signal = adv.signal; // 'Strong Buy' | 'Buy' | 'Strong Sell' | 'Sell' | 'Neutral'
+
+      if(signal === 'Neutral'){
+        signal = 'No Trade';
+        confidence = 50 + adv.score*5; // gates passed but confluence too weak to trade
+        reason = adv.reason;
+        tags = ['Gates Passed','Low Confluence','15m Klines'];
       } else {
-        signal = 'Sell'; confidence += 5;
-        reason = `Bearish bias, RSI is oversold (${rsi.toFixed(1)}) — downside momentum strong but bounce risk rising.`;
-        tags.push('Oversold Caution');
-      }
-    }
+        // Base confidence scales directly with confluence score (0-4 -> this is the
+        // core accuracy mechanism: more agreeing factors = higher conviction)
+        confidence = 55 + adv.score * 10; // score 2 -> 75, score 3 -> 85, score 4 -> 95
+        tags = ['Gates Passed', `Confluence ${adv.score}/4`, '15m Klines'];
 
-    if(emaPriceConflict && signal !== 'No Trade'){
-      confidence -= 10;
-      reason += ` Note: slower EMA(20/50) still lags the other way — trading the more current price/MACD signal, but conviction reduced.`;
-      tags.push('EMA Lag Flag');
-    }
+        const rsiNote = adv.breakdown.rsi ? `RSI ${bullish?'oversold':'overbought'} at ${rsi.toFixed(1)}` : `RSI neutral at ${rsi.toFixed(1)}`;
+        const macdNote = adv.breakdown.macdHistogram ? `MACD histogram confirms ${bullish?'bullish':'bearish'} momentum` : `MACD not yet confirming`;
+        const emaNote = adv.breakdown.emaCross ? `price is ${bullish?'above':'below'} the 50 EMA` : `price hasn't cleared the 50 EMA`;
+        const sentNote = adv.breakdown.sentiment ? `news sentiment supports this direction` : `news sentiment is neutral/unsupportive`;
 
-    // ── Volume confirmation: a move on high volume is real, a move on thin
-    // volume is often noise. Scale confidence accordingly.
-    if(signal !== 'No Trade'){
-      if(volRatio >= 1.5){
-        confidence += 10;
-        reason += ` Volume is ${volRatio.toFixed(1)}x the recent average — strong participation backs this move.`;
-        tags.push('High Volume');
-      } else if(volRatio >= 1.0){
-        confidence += 4;
-        tags.push('Normal Volume');
-      } else if(volRatio < 0.6){
-        confidence -= 12;
-        reason += ` Caution: volume is only ${volRatio.toFixed(1)}x average — this move lacks participation and may not hold.`;
-        tags.push('Low Volume Warning');
-      }
-    }
+        reason = `Multi-timeframe confluence confirmed (15m + 1H both ${adv.direction}), volume ${volRatio.toFixed(1)}x average, ATR ${atrPct.toFixed(2)}% of price. Confluence score ${adv.score}/4: ${rsiNote}; ${macdNote}; ${emaNote}; ${sentNote}.`;
 
-    // ── Multi-timeframe confirmation: check the 1H trend. Trading with the
-    // bigger trend is safer; against it gets a confidence penalty (not blocked).
-    const trend1H = await fetch1HTrend(coin.sym);
-    if(trend1H && signal !== 'No Trade'){
-      const signal1HBullish = trend1H === 'Bullish';
-      if(signal1HBullish === bullish){
-        confidence += 8;
-        reason += ` 1H trend (${trend1H}) aligns with this setup.`;
-        tags.push('1H Confirmed');
-      } else {
-        confidence -= 15;
-        reason += ` Conflict: 1H trend is ${trend1H} while this 15m setup is ${bullish?'Bullish':'Bearish'} — trading against the higher timeframe, reduced size advised.`;
-        tags.push('1H Conflict');
-      }
-    }
-
-    // News sentiment bonus (CryptoPanic) layered on top
-    const nb = newsBonusFor(coin.sym, bullish);
-    if(nb !== 0 && signal !== 'No Trade'){
-      confidence += nb;
-      const coinNews = globalNewsItems.filter(n=>n.coin===coin.sym||n.coin==='ALL').slice(0,1);
-      if(coinNews.length){
-        reason += ` News check: "${coinNews[0].title.slice(0,55)}…" (${coinNews[0].src}) — ${nb>=0?'supports':'conflicts with'} this setup.`;
-        tags.push('News Sentiment');
+        if(adv.breakdown.rsi) tags.push('RSI');
+        if(adv.breakdown.macdHistogram) tags.push('MACD');
+        if(adv.breakdown.emaCross) tags.push('EMA50');
+        if(adv.breakdown.sentiment) tags.push('News Sentiment');
       }
     }
 
     confidence = Math.min(Math.max(confidence, 0), 97);
 
-    // ── ATR-based dynamic Stop Loss / Take Profit ──
+    // ── ATR-based dynamic Stop Loss / Take Profit (unchanged) ──
     // SL distance = 1.5x ATR (gives room for normal noise on volatile coins,
     // stays tight on stable coins). TP distance = 2x SL distance → fixed 1:2 R:R.
     const buySide = signal.includes('Buy');
@@ -1412,8 +1402,10 @@ async function analyzeCoin(coin){
     coin.dynTP2 = dynTP2;
     coin.macdHist = macd.histogram;
     coin.volRatio = volRatio;
-    coin.trend1H  = trend1H;
-    coin.emaConflict = emaPriceConflict;
+    coin.trend1H  = adv.meta.trendHigher || null;
+    coin.emaConflict = false;
+    coin.advGates = adv.gates;
+    coin.advScore = adv.score;
 
     if(coin.sym === COINS[activeCoin].sym){
       const rsiEl = document.getElementById('ind-rsi');
@@ -1426,11 +1418,11 @@ async function analyzeCoin(coin){
 
       const emaEl = document.getElementById('ind-ema');
       if(emaEl){
-        emaEl.textContent = bullish ? 'Bullish' : 'Bearish';
-        emaEl.style.color = bullish ? 'var(--green)' : 'var(--red)';
+        emaEl.textContent = adv.direction || 'Neutral';
+        emaEl.style.color = adv.direction==='Bullish' ? 'var(--green)' : adv.direction==='Bearish' ? 'var(--red)' : 'var(--t3)';
       }
       const emaSEl = document.getElementById('ind-ema-s');
-      if(emaSEl) emaSEl.textContent = `MACD+Price+EMA blend${emaPriceConflict?' (EMA lagging)':''}`;
+      if(emaSEl) emaSEl.textContent = adv.gates.multiTimeframe ? '15m + 1H aligned' : '15m/1H conflict — no trade';
 
       const atrEl = document.getElementById('ind-atr');
       if(atrEl){
@@ -1438,7 +1430,7 @@ async function analyzeCoin(coin){
         atrEl.style.color = volLabel==='High'?'var(--red)':volLabel==='Moderate'?'var(--gold)':'var(--green)';
       }
       const atrSEl = document.getElementById('ind-atr-s');
-      if(atrSEl) atrSEl.textContent = 'ATR: '+fmtPrice(atr)+' per 15m candle';
+      if(atrSEl) atrSEl.textContent = adv.gates.volatility ? 'ATR: '+fmtPrice(atr)+' per 15m candle' : 'Below min — range-bound';
 
       const chgEl = document.getElementById('ind-chg');
       if(chgEl){
@@ -1459,21 +1451,20 @@ async function analyzeCoin(coin){
       const volEl = document.getElementById('ind-vol2');
       if(volEl){
         volEl.textContent = volRatio.toFixed(1)+'x avg';
-        volEl.style.color = volRatio>=1.5?'var(--green)':volRatio<0.6?'var(--red)':'var(--gold)';
+        volEl.style.color = adv.gates.volume?'var(--green)':'var(--red)';
       }
       const volSEl = document.getElementById('ind-vol2-s');
-      if(volSEl) volSEl.textContent = volRatio>=1.5?'High participation':volRatio<0.6?'Thin — caution':'Normal';
+      if(volSEl) volSEl.textContent = adv.gates.volume?'Liquidity OK':'Thin — signals suppressed';
 
       const tf1hEl = document.getElementById('ind-1h');
       if(tf1hEl){
-        tf1hEl.textContent = trend1H || 'Unknown';
-        tf1hEl.style.color = trend1H==='Bullish'?'var(--green)':trend1H==='Bearish'?'var(--red)':'var(--t3)';
+        const t1h = adv.meta.trendHigher || 'Unknown';
+        tf1hEl.textContent = t1h;
+        tf1hEl.style.color = t1h==='Bullish'?'var(--green)':t1h==='Bearish'?'var(--red)':'var(--t3)';
       }
       const tf1hSEl = document.getElementById('ind-1h-s');
-      if(tf1hSEl) tf1hSEl.textContent = trend1H ? (trend1H===trend?'Aligned with 15m':'Conflicts with 15m') : 'Fetch failed';
+      if(tf1hSEl) tf1hSEl.textContent = adv.gates.multiTimeframe ? 'Confirms 15m' : 'Conflicts with 15m';
     }
-
-    coin.analyzed = true;
 
   } catch(e){
     console.error(`Error analyzing ${coin.sym}: `, e);
@@ -1482,17 +1473,9 @@ async function analyzeCoin(coin){
 
 async function runLiveAnalysis(){
   setLiveStatus(false, 'SCANNING...');
-  const lbl = document.getElementById('scan-count-lbl');
-  // Scan in batches of 5 to avoid rate limiting
-  const batchSize = 5;
-  for(let i=0; i<COINS.length; i+=batchSize){
-    const batch = COINS.slice(i, i+batchSize);
-    if(lbl) lbl.textContent = `Scanning ${Math.min(i+batchSize,COINS.length)}/${COINS.length} coins…`;
-    await Promise.all(batch.map(coin => analyzeCoin(coin)));
-    renderCoins();
-    renderTable();
+  for(let coin of COINS){
+    await analyzeCoin(coin);
   }
-  if(lbl) lbl.textContent = COINS.length + ' coins scanned';
   setLiveStatus(true, 'LIVE');
   renderCoins();
   renderTable();
@@ -1500,7 +1483,7 @@ async function runLiveAnalysis(){
   if(sigView && sigView.classList.contains('on')) renderSignals();
 
   // Auto-record active (above-threshold) signals into history
-  COINS.filter(c=>c.conf>=threshold && c.sig!=='No Trade' && c.sig!=='Analyzing...' && c.price>0 && c.analyzed)
+  COINS.filter(c=>c.conf>=threshold && c.sig!=='No Trade' && c.sig!=='Analyzing...' && c.price>0)
        .forEach(c=>recordSignal(c));
   saveHistory();
   renderHistory();
@@ -1618,7 +1601,7 @@ async function fetchNews(){
       bullWords.forEach(w=>{ if(title.includes(w)){ sent='bull'; impact=Math.min(95,impact+8); } });
       bearWords.forEach(w=>{ if(title.includes(w)){ sent='bear'; impact=Math.min(95,impact+8); } });
 
-      const coinMap = {bitcoin:'BTC',ethereum:'ETH',solana:'SOL',bnb:'BNB',xrp:'XRP',cardano:'ADA',dogecoin:'DOGE',tron:'TRX',chainlink:'LINK',avalanche:'AVAX',polkadot:'DOT',polygon:'MATIC',cosmos:'ATOM',near:'NEAR',fantom:'FTM',algorand:'ALGO',aptos:'APT',sui:'SUI',toncoin:'TON',hedera:'HBAR',vechain:'VET',uniswap:'UNI',aave:'AAVE',maker:'MKR',synthetix:'SNX',curve:'CRV',lido:'LDO',compound:'COMP',injective:'INJ',shiba:'SHIB',pepe:'PEPE',render:'RNDR',bittensor:'TAO',worldcoin:'WLD',axie:'AXS',sandbox:'SAND',decentraland:'MANA',enjin:'ENJ',immutable:'IMX',gala:'GALA'};
+      const coinMap = {bitcoin:'BTC',ethereum:'ETH',solana:'SOL',bnb:'BNB',xrp:'XRP',cardano:'ADA',dogecoin:'DOGE',tron:'TRX',chainlink:'LINK',avalanche:'AVAX'};
       let coin = 'ALL';
       Object.entries(coinMap).forEach(([k,v])=>{ if(title.includes(k)||title.includes(v.toLowerCase())) coin=v; });
 
@@ -2250,46 +2233,6 @@ function dmRender(){
 // ═══════════════════════════════════════════════════════════
 // BOOT SEQUENCE
 // ═══════════════════════════════════════════════════════════
-
-// Populate demo trade coin dropdown dynamically
-(function(){
-  const sel = document.getElementById('dm-coin');
-  if(sel){
-    const groups = {Layer1:[],DeFi:[],Meme:[],AI:[],Gaming:[]};
-    COINS.forEach(c=>{ if(groups[c.cat]) groups[c.cat].push(c); });
-    Object.entries(groups).forEach(([cat,coins])=>{
-      if(!coins.length) return;
-      const grp = document.createElement('optgroup');
-      grp.label = cat;
-      coins.forEach(c=>{
-        const opt = document.createElement('option');
-        opt.value = c.sym;
-        opt.textContent = c.sym + ' — ' + c.name;
-        grp.appendChild(opt);
-      });
-      sel.appendChild(grp);
-    });
-  }
-  // Populate chart symbol selector
-  const chartSel = document.getElementById('sym-sel');
-  if(chartSel){
-    const groups2 = {Layer1:[],DeFi:[],Meme:[],AI:[],Gaming:[]};
-    COINS.forEach(c=>{ if(groups2[c.cat]) groups2[c.cat].push(c); });
-    Object.entries(groups2).forEach(([cat,coins])=>{
-      if(!coins.length) return;
-      const grp = document.createElement('optgroup');
-      grp.label = cat;
-      coins.forEach(c=>{
-        const opt = document.createElement('option');
-        opt.value = c.sym+'USDT';
-        opt.textContent = c.sym+'/USDT';
-        if(c.sym==='BTC') opt.selected = true;
-        grp.appendChild(opt);
-      });
-      chartSel.appendChild(grp);
-    });
-  }
-})();
 renderCoins();
 renderTable();
 loadHistory();
