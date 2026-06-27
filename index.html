@@ -197,6 +197,10 @@
   .dtrade-row:hover{background:var(--bg3)}
   .pnl-pos{color:var(--green);font-weight:600}
   .pnl-neg{color:var(--red);font-weight:600}
+  .cat-btn{padding:3px 7px;border-radius:4px;font-size:10px;color:var(--t3);cursor:pointer;border:0.5px solid var(--border);background:transparent;font-family:'Inter',sans-serif;transition:all .12s}
+  .cat-btn:hover{color:var(--t1);background:var(--bg3)}
+  .cat-btn.on{color:var(--blue);background:rgba(59,130,246,.15);border-color:rgba(59,130,246,.3)}
+  .coin-search-none{text-align:center;padding:20px 8px;font-size:11px;color:var(--t3)}
   .toast{position:fixed;bottom:20px;right:20px;padding:10px 18px;border-radius:8px;font-size:12px;font-weight:500;z-index:999;animation:slideup .3s ease;pointer-events:none}
   @keyframes slideup{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
   .toast.buy{background:rgba(16,185,129,.9);color:#fff}
@@ -249,8 +253,22 @@
 <div class="shell">
   <!-- SIDEBAR -->
   <div class="sidebar">
-    <div class="sb-head">Top 10 Coins</div>
-    <div id="coin-list"></div>
+    <div style="padding:8px 8px 4px">
+      <div style="position:relative">
+        <input id="coin-search" type="text" placeholder="🔍 Search coin..." oninput="filterCoins()" style="width:100%;padding:6px 10px 6px 28px;border-radius:7px;border:0.5px solid var(--border2);background:var(--bg2);color:var(--t1);font-size:11px;font-family:'Inter',sans-serif;outline:none">
+        <span style="position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:11px;pointer-events:none">🔍</span>
+      </div>
+      <div id="cat-filters" style="display:flex;flex-wrap:wrap;gap:3px;margin-top:5px">
+        <button class="cat-btn on" onclick="setCat('ALL',this)">All</button>
+        <button class="cat-btn" onclick="setCat('Layer1',this)">L1</button>
+        <button class="cat-btn" onclick="setCat('DeFi',this)">DeFi</button>
+        <button class="cat-btn" onclick="setCat('Meme',this)">Meme</button>
+        <button class="cat-btn" onclick="setCat('AI',this)">AI</button>
+        <button class="cat-btn" onclick="setCat('Gaming',this)">Game</button>
+      </div>
+    </div>
+    <div class="sb-head" id="sb-coin-count" style="padding:4px 12px 4px">All Coins</div>
+    <div id="coin-list" style="overflow-y:auto;flex:1"></div>
 
     <!-- Fear & Greed (live, from Doc1) -->
     <div class="fg-box">
@@ -282,15 +300,31 @@
     <div class="view on" id="view-dashboard">
       <div class="strip">
         <div class="stat"><div class="stat-l">Total Market Cap</div><div class="stat-v" style="color:var(--blue)" id="s-mcap">Loading…</div><div class="stat-s" id="s-mcap-c">Fetching…</div></div>
-        <div class="stat"><div class="stat-l">Next AI Scan In</div><div class="stat-v" style="color:var(--gold)" id="next-scan">10:00</div><div class="stat-s">Scanning Top 10 coins</div></div>
+        <div class="stat"><div class="stat-l">Next AI Scan In</div><div class="stat-v" style="color:var(--gold)" id="next-scan">10:00</div><div class="stat-s" id="scan-count-lbl">52 coins being scanned</div></div>
         <div class="stat"><div class="stat-l">Active Signals</div><div class="stat-v" style="color:var(--green)" id="s-sigs">0</div><div class="stat-s">Based on live TA</div></div>
         <div class="stat"><div class="stat-l">News Sentiment</div><div class="stat-v" style="color:var(--purple)" id="s-newssent">—</div><div class="stat-s" id="s-newssent-s">Analyzing…</div></div>
       </div>
 
       <div class="card">
         <div class="card-head">
-          <div class="card-title">📈 Market Overview — Live Prices &amp; Algo Score</div>
-          <button class="btn" onclick="runLiveAnalysis()">🔄 Force Scan</button>
+          <div class="card-title">📈 Market Overview — <span id="tbl-count">52</span> Coins Live</div>
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+            <input id="tbl-search" type="text" placeholder="Filter..." oninput="filterTable()" style="padding:4px 8px;border-radius:5px;border:0.5px solid var(--border2);background:var(--bg3);color:var(--t1);font-size:11px;font-family:'Inter',sans-serif;outline:none;width:110px">
+            <select id="tbl-cat" onchange="filterTable()" style="padding:4px 7px;border-radius:5px;border:0.5px solid var(--border2);background:var(--bg3);color:var(--t2);font-size:11px;font-family:'Inter',sans-serif;outline:none">
+              <option value="ALL">All Categories</option>
+              <option value="Layer1">Layer 1</option>
+              <option value="DeFi">DeFi</option>
+              <option value="Meme">Meme</option>
+              <option value="AI">AI</option>
+              <option value="Gaming">Gaming</option>
+            </select>
+            <select id="tbl-sig" onchange="filterTable()" style="padding:4px 7px;border-radius:5px;border:0.5px solid var(--border2);background:var(--bg3);color:var(--t2);font-size:11px;font-family:'Inter',sans-serif;outline:none">
+              <option value="ALL">All Signals</option>
+              <option value="Buy">Buy Only</option>
+              <option value="Sell">Sell Only</option>
+            </select>
+            <button class="btn" onclick="runLiveAnalysis()">🔄 Scan All</button>
+          </div>
         </div>
         <div class="th"><div>Coin</div><div>Price</div><div>24H</div><div>Volume</div><div>Market Cap</div><div>AI Score</div><div>Signal</div><div>Confidence</div></div>
         <div id="market-table"><div class="loading"><div class="spinner"></div>Fetching live data…</div></div>
@@ -333,16 +367,7 @@
             </div>
           </div>
           <select id="sym-sel" onchange="changeSym(this.value)" style="background:var(--bg3);color:var(--t1);border:0.5px solid var(--border2);border-radius:6px;padding:5px 10px;font-size:11px;font-family:'Inter',sans-serif">
-            <option value="BTCUSDT">BTC/USDT</option>
-            <option value="ETHUSDT">ETH/USDT</option>
-            <option value="SOLUSDT">SOL/USDT</option>
-            <option value="BNBUSDT">BNB/USDT</option>
-            <option value="XRPUSDT">XRP/USDT</option>
-            <option value="ADAUSDT">ADA/USDT</option>
-            <option value="DOGEUSDT">DOGE/USDT</option>
-            <option value="TRXUSDT">TRX/USDT</option>
-            <option value="LINKUSDT">LINK/USDT</option>
-            <option value="AVAXUSDT">AVAX/USDT</option>
+            <!-- Populated dynamically -->
           </select>
         </div>
         <div style="padding:10px">
@@ -452,16 +477,7 @@
               <div class="form-row">
                 <div class="form-label">Select Coin</div>
                 <select class="form-select" id="dm-coin" onchange="dmUpdatePrice()">
-                  <option value="BTC">BTC — Bitcoin</option>
-                  <option value="ETH">ETH — Ethereum</option>
-                  <option value="SOL">SOL — Solana</option>
-                  <option value="BNB">BNB — BNB</option>
-                  <option value="XRP">XRP — XRP</option>
-                  <option value="ADA">ADA — Cardano</option>
-                  <option value="DOGE">DOGE — Dogecoin</option>
-                  <option value="TRX">TRX — TRON</option>
-                  <option value="LINK">LINK — Chainlink</option>
-                  <option value="AVAX">AVAX — Avalanche</option>
+                  <!-- Populated dynamically by JS -->
                 </select>
               </div>
 
@@ -595,17 +611,68 @@
 // ═══════════════════════════════════════════════════════════
 // STATE — Coins
 // ═══════════════════════════════════════════════════════════
+function mkCoin(sym,name,color,bg,cat){
+  return {sym,name,color,bg,cat,price:0,chg:0,vol:'0',mcap:'—',score:50,sig:'Analyzing...',conf:50,trend:'Neutral',reason:'Waiting for live data...',tags:[],rsi:null,analyzed:false};
+}
 const COINS = [
-  {sym:'BTC',name:'Bitcoin',   color:'#f7931a',bg:'rgba(247,147,26,.15)', price:0, chg:0, vol:'0', mcap:'—', score:50, sig:'Analyzing...', conf:50, trend:'Neutral', reason:'Waiting for live data...', tags:[]},
-  {sym:'ETH',name:'Ethereum',  color:'#627eea',bg:'rgba(98,126,234,.15)', price:0, chg:0, vol:'0', mcap:'—', score:50, sig:'Analyzing...', conf:50, trend:'Neutral', reason:'Waiting for live data...', tags:[]},
-  {sym:'SOL',name:'Solana',    color:'#9945ff',bg:'rgba(153,69,255,.15)', price:0, chg:0, vol:'0', mcap:'—', score:50, sig:'Analyzing...', conf:50, trend:'Neutral', reason:'Waiting for live data...', tags:[]},
-  {sym:'BNB',name:'BNB',       color:'#f0b90b',bg:'rgba(240,185,11,.15)', price:0, chg:0, vol:'0', mcap:'—', score:50, sig:'Analyzing...', conf:50, trend:'Neutral', reason:'Waiting for live data...', tags:[]},
-  {sym:'XRP',name:'XRP',       color:'#00aae4',bg:'rgba(0,170,228,.15)',  price:0, chg:0, vol:'0', mcap:'—', score:50, sig:'Analyzing...', conf:50, trend:'Neutral', reason:'Waiting for live data...', tags:[]},
-  {sym:'ADA',name:'Cardano',   color:'#3cc8c8',bg:'rgba(60,200,200,.15)', price:0, chg:0, vol:'0', mcap:'—', score:50, sig:'Analyzing...', conf:50, trend:'Neutral', reason:'Waiting for live data...', tags:[]},
-  {sym:'DOGE',name:'Dogecoin', color:'#c2a633',bg:'rgba(194,166,51,.15)', price:0, chg:0, vol:'0', mcap:'—', score:50, sig:'Analyzing...', conf:50, trend:'Neutral', reason:'Waiting for live data...', tags:[]},
-  {sym:'TRX',name:'TRON',      color:'#ef0027',bg:'rgba(239,0,39,.15)',   price:0, chg:0, vol:'0', mcap:'—', score:50, sig:'Analyzing...', conf:50, trend:'Neutral', reason:'Waiting for live data...', tags:[]},
-  {sym:'LINK',name:'Chainlink',color:'#2a5ada',bg:'rgba(42,90,218,.15)',  price:0, chg:0, vol:'0', mcap:'—', score:50, sig:'Analyzing...', conf:50, trend:'Neutral', reason:'Waiting for live data...', tags:[]},
-  {sym:'AVAX',name:'Avalanche',color:'#e84142',bg:'rgba(232,65,66,.15)',  price:0, chg:0, vol:'0', mcap:'—', score:50, sig:'Analyzing...', conf:50, trend:'Neutral', reason:'Waiting for live data...', tags:[]},
+  // ── Layer 1 ──
+  mkCoin('BTC','Bitcoin',   '#f7931a','rgba(247,147,26,.15)','Layer1'),
+  mkCoin('ETH','Ethereum',  '#627eea','rgba(98,126,234,.15)','Layer1'),
+  mkCoin('SOL','Solana',    '#9945ff','rgba(153,69,255,.15)','Layer1'),
+  mkCoin('BNB','BNB',       '#f0b90b','rgba(240,185,11,.15)','Layer1'),
+  mkCoin('XRP','XRP',       '#00aae4','rgba(0,170,228,.15)', 'Layer1'),
+  mkCoin('ADA','Cardano',   '#3cc8c8','rgba(60,200,200,.15)','Layer1'),
+  mkCoin('TRX','TRON',      '#ef0027','rgba(239,0,39,.15)',  'Layer1'),
+  mkCoin('AVAX','Avalanche','#e84142','rgba(232,65,66,.15)', 'Layer1'),
+  mkCoin('DOT','Polkadot',  '#e6007a','rgba(230,0,122,.15)', 'Layer1'),
+  mkCoin('MATIC','Polygon', '#8247e5','rgba(130,71,229,.15)','Layer1'),
+  mkCoin('ATOM','Cosmos',   '#6f7390','rgba(111,115,144,.15)','Layer1'),
+  mkCoin('NEAR','NEAR',     '#00c1de','rgba(0,193,222,.15)', 'Layer1'),
+  mkCoin('FTM','Fantom',    '#1969ff','rgba(25,105,255,.15)','Layer1'),
+  mkCoin('ALGO','Algorand', '#ffffff','rgba(200,200,200,.1)','Layer1'),
+  mkCoin('ICP','Internet Computer','#29abe2','rgba(41,171,226,.15)','Layer1'),
+  mkCoin('APT','Aptos',     '#30d5c8','rgba(48,213,200,.15)','Layer1'),
+  mkCoin('SUI','Sui',       '#6fbcf0','rgba(111,188,240,.15)','Layer1'),
+  mkCoin('TON','Toncoin',   '#0088cc','rgba(0,136,204,.15)', 'Layer1'),
+  mkCoin('HBAR','Hedera',   '#00babc','rgba(0,186,188,.15)', 'Layer1'),
+  mkCoin('VET','VeChain',   '#15bdff','rgba(21,189,255,.15)','Layer1'),
+  // ── DeFi ──
+  mkCoin('UNI','Uniswap',   '#ff007a','rgba(255,0,122,.15)', 'DeFi'),
+  mkCoin('LINK','Chainlink','#2a5ada','rgba(42,90,218,.15)',  'DeFi'),
+  mkCoin('AAVE','Aave',     '#b6509e','rgba(182,80,158,.15)','DeFi'),
+  mkCoin('MKR','Maker',     '#4fa89b','rgba(79,168,155,.15)','DeFi'),
+  mkCoin('SNX','Synthetix', '#00d1ff','rgba(0,209,255,.15)', 'DeFi'),
+  mkCoin('CRV','Curve',     '#fd0000','rgba(253,0,0,.1)',    'DeFi'),
+  mkCoin('LDO','Lido DAO',  '#00a3ff','rgba(0,163,255,.15)', 'DeFi'),
+  mkCoin('1INCH','1inch',   '#d82122','rgba(216,33,34,.15)', 'DeFi'),
+  mkCoin('COMP','Compound', '#00d395','rgba(0,211,149,.15)', 'DeFi'),
+  mkCoin('GMX','GMX',       '#4d88ef','rgba(77,136,239,.15)','DeFi'),
+  mkCoin('DYDX','dYdX',     '#6966ff','rgba(105,102,255,.15)','DeFi'),
+  mkCoin('INJ','Injective',  '#00b4d8','rgba(0,180,216,.15)', 'DeFi'),
+  // ── Meme ──
+  mkCoin('DOGE','Dogecoin', '#c2a633','rgba(194,166,51,.15)','Meme'),
+  mkCoin('SHIB','Shiba Inu','#ffa409','rgba(255,164,9,.15)', 'Meme'),
+  mkCoin('PEPE','Pepe',     '#3ab549','rgba(58,181,73,.15)', 'Meme'),
+  mkCoin('WIF','dogwifhat', '#b5835a','rgba(181,131,90,.15)','Meme'),
+  mkCoin('BONK','Bonk',     '#f5a623','rgba(245,166,35,.15)','Meme'),
+  mkCoin('FLOKI','Floki',   '#f5b919','rgba(245,185,25,.15)','Meme'),
+  mkCoin('NEIRO','Neiro',   '#e86e4d','rgba(232,110,77,.15)','Meme'),
+  mkCoin('BOME','BookOfMeme','#9b59b6','rgba(155,89,182,.15)','Meme'),
+  // ── AI ──
+  mkCoin('FET','Fetch.ai',  '#1a1f2e','rgba(80,140,255,.2)', 'AI'),
+  mkCoin('RNDR','Render',   '#d83b3b','rgba(216,59,59,.15)', 'AI'),
+  mkCoin('GRT','The Graph', '#6f4cba','rgba(111,76,186,.15)','AI'),
+  mkCoin('AGIX','SingularityNET','#5f9ea0','rgba(95,158,160,.15)','AI'),
+  mkCoin('TAO','Bittensor', '#57cc99','rgba(87,204,153,.15)','AI'),
+  mkCoin('WLD','Worldcoin', '#1a1a1a','rgba(120,120,255,.15)','AI'),
+  mkCoin('OCEAN','Ocean',   '#ff4092','rgba(255,64,146,.15)','AI'),
+  // ── Gaming ──
+  mkCoin('AXS','Axie Infinity','#0055d5','rgba(0,85,213,.15)','Gaming'),
+  mkCoin('SAND','The Sandbox','#04adef','rgba(4,173,239,.15)','Gaming'),
+  mkCoin('MANA','Decentraland','#ff2d55','rgba(255,45,85,.15)','Gaming'),
+  mkCoin('ENJ','Enjin',     '#7866d5','rgba(120,102,213,.15)','Gaming'),
+  mkCoin('IMX','ImmutableX','#17b3a3','rgba(23,179,163,.15)','Gaming'),
+  mkCoin('GALA','Gala',     '#0099ff','rgba(0,153,255,.15)', 'Gaming'),
 ];
 
 let threshold = 60;
@@ -613,7 +680,31 @@ let activeCoin = 0;
 let currentSym = 'BTCUSDT';
 let currentTF = '60';
 let scanCountdown = 600;
+let activeCategory = 'ALL';
+let searchQuery = '';
 const TF_MAP = {'5m':'5','15m':'15','1H':'60','4H':'240','1D':'D'};
+
+function getFilteredCoins(){
+  return COINS.filter(c=>{
+    const matchCat = activeCategory==='ALL' || c.cat===activeCategory;
+    const matchSearch = !searchQuery || c.sym.toLowerCase().includes(searchQuery) || c.name.toLowerCase().includes(searchQuery);
+    return matchCat && matchSearch;
+  });
+}
+
+function filterCoins(){
+  searchQuery = document.getElementById('coin-search').value.toLowerCase().trim();
+  renderCoins();
+}
+
+function setCat(cat, el){
+  activeCategory = cat;
+  document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+  searchQuery = '';
+  document.getElementById('coin-search').value = '';
+  renderCoins();
+}
 
 // News + sentiment state (CryptoPanic, from Doc1)
 let globalNewsItems = [];
@@ -810,15 +901,24 @@ function updateOrderBookUI(rawBids, rawAsks){
 // COIN SIDEBAR + MARKET TABLE
 // ═══════════════════════════════════════════════════════════
 function renderCoins(){
-  document.getElementById('coin-list').innerHTML=COINS.map((c,i)=>`
-    <div class="coin-row ${i===activeCoin?'active':''}" onclick="selectCoin(${i})">
+  const filtered = getFilteredCoins();
+  const lbl = document.getElementById('sb-coin-count');
+  if(lbl) lbl.textContent = filtered.length + ' Coin' + (filtered.length!==1?'s':'') + (activeCategory!=='ALL'?' · '+activeCategory:'');
+  if(!filtered.length){
+    document.getElementById('coin-list').innerHTML='<div class="coin-search-none">No coins found</div>';
+    return;
+  }
+  document.getElementById('coin-list').innerHTML=filtered.map((c,fi)=>{
+    const gi = COINS.indexOf(c);
+    return `<div class="coin-row ${gi===activeCoin?'active':''}" onclick="selectCoin(${gi})">
       <div class="avatar" style="background:${c.bg};color:${c.color}">${c.sym[0]}</div>
       <div class="ci"><div class="csym">${c.sym}</div><div class="cname">${c.name}</div></div>
       <div class="cr">
         <div class="cprice">${fmtPrice(c.price)}</div>
         <div class="cchg ${c.chg>=0?'up':'dn'}">${c.price?(c.chg>=0?'+':'')+c.chg.toFixed(2)+'%':'—'}</div>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 function selectCoin(i){
@@ -829,8 +929,28 @@ function selectCoin(i){
   if(rsiEl) rsiEl.textContent = COINS[i].rsi ? COINS[i].rsi : 'Wait..';
 }
 
+function filterTable(){
+  renderTable();
+}
+
 function renderTable(){
-  document.getElementById('market-table').innerHTML=COINS.map(c=>{
+  const tblSearch = (document.getElementById('tbl-search')||{}).value||'';
+  const tblCat    = (document.getElementById('tbl-cat')||{}).value||'ALL';
+  const tblSig    = (document.getElementById('tbl-sig')||{}).value||'ALL';
+  const q = tblSearch.toLowerCase();
+
+  const filtered = COINS.filter(c=>{
+    if(tblCat!=='ALL' && c.cat!==tblCat) return false;
+    if(q && !c.sym.toLowerCase().includes(q) && !c.name.toLowerCase().includes(q)) return false;
+    if(tblSig==='Buy' && !c.sig.includes('Buy')) return false;
+    if(tblSig==='Sell' && !c.sig.includes('Sell')) return false;
+    return true;
+  });
+
+  const tblCount = document.getElementById('tbl-count');
+  if(tblCount) tblCount.textContent = filtered.length;
+
+  document.getElementById('market-table').innerHTML=filtered.map(c=>{
     const sig=c.conf>=threshold?c.sig:'No Trade';
     const sc=c.score>=75?'var(--green)':c.score>=60?'var(--gold)':'var(--red)';
     const [sc2,bg2]=sig==='Strong Buy'?['#10b981','rgba(16,185,129,.15)']:
@@ -838,21 +958,25 @@ function renderTable(){
                      sig==='Strong Sell'?['#ef4444','rgba(239,68,68,.15)']:
                      sig==='Sell'?['#f87171','rgba(248,113,113,.1)']:
                      ['#f59e0b','rgba(245,158,11,.1)'];
+    const catColor={'Layer1':'#3b82f6','DeFi':'#8b5cf6','Meme':'#f59e0b','AI':'#10b981','Gaming':'#ec4899'}[c.cat]||'#64748b';
     return `<div class="tr">
       <div class="cc">
         <div class="avatar" style="background:${c.bg};color:${c.color};width:22px;height:22px;font-size:9px">${c.sym[0]}</div>
-        <div><div style="font-size:12px;font-weight:500">${c.sym}</div><div style="font-size:10px;color:var(--t3)">${c.name}</div></div>
+        <div>
+          <div style="font-size:12px;font-weight:500">${c.sym}</div>
+          <div style="font-size:9px;color:${catColor};font-weight:500">${c.cat}</div>
+        </div>
       </div>
       <div style="font-family:'JetBrains Mono',monospace;font-size:12px">${fmtPrice(c.price)}</div>
-      <div class="${c.chg>=0?'up':'dn'}">${c.chg>=0?'+':''}${c.chg.toFixed(2)}%</div>
+      <div class="${c.chg>=0?'up':'dn'}">${c.price?(c.chg>=0?'+':'')+c.chg.toFixed(2)+'%':'—'}</div>
       <div style="color:var(--t2)">${c.vol}</div>
       <div style="color:var(--t2)">$${c.mcap}</div>
       <div class="sbar"><div class="sb"><div class="sf" style="width:${c.score}%;background:${sc}"></div></div><span style="font-size:11px;font-weight:500;color:${sc}">${c.score}</span></div>
-      <div><span class="pill" style="background:${bg2};color:${sc2}">${sig}</span></div>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--t2)">${c.conf}%</div>
+      <div><span class="pill" style="background:${bg2};color:${sc2}">${c.analyzed?sig:'Pending'}</span></div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--t2)">${c.analyzed?c.conf+'%':'—'}</div>
     </div>`;
-  }).join('');
-  const n=COINS.filter(c=>c.conf>=threshold&&c.sig!=='No Trade'&&c.sig!=='Analyzing...').length;
+  }).join('') || '<div style="padding:20px;text-align:center;color:var(--t3)">No coins match this filter</div>';
+  const n=COINS.filter(c=>c.conf>=threshold&&c.sig!=='No Trade'&&c.sig!=='Analyzing...'&&c.analyzed).length;
   document.getElementById('s-sigs').textContent=n;
 }
 
@@ -1349,6 +1473,8 @@ async function analyzeCoin(coin){
       if(tf1hSEl) tf1hSEl.textContent = trend1H ? (trend1H===trend?'Aligned with 15m':'Conflicts with 15m') : 'Fetch failed';
     }
 
+    coin.analyzed = true;
+
   } catch(e){
     console.error(`Error analyzing ${coin.sym}: `, e);
   }
@@ -1356,9 +1482,17 @@ async function analyzeCoin(coin){
 
 async function runLiveAnalysis(){
   setLiveStatus(false, 'SCANNING...');
-  for(let coin of COINS){
-    await analyzeCoin(coin);
+  const lbl = document.getElementById('scan-count-lbl');
+  // Scan in batches of 5 to avoid rate limiting
+  const batchSize = 5;
+  for(let i=0; i<COINS.length; i+=batchSize){
+    const batch = COINS.slice(i, i+batchSize);
+    if(lbl) lbl.textContent = `Scanning ${Math.min(i+batchSize,COINS.length)}/${COINS.length} coins…`;
+    await Promise.all(batch.map(coin => analyzeCoin(coin)));
+    renderCoins();
+    renderTable();
   }
+  if(lbl) lbl.textContent = COINS.length + ' coins scanned';
   setLiveStatus(true, 'LIVE');
   renderCoins();
   renderTable();
@@ -1366,7 +1500,7 @@ async function runLiveAnalysis(){
   if(sigView && sigView.classList.contains('on')) renderSignals();
 
   // Auto-record active (above-threshold) signals into history
-  COINS.filter(c=>c.conf>=threshold && c.sig!=='No Trade' && c.sig!=='Analyzing...' && c.price>0)
+  COINS.filter(c=>c.conf>=threshold && c.sig!=='No Trade' && c.sig!=='Analyzing...' && c.price>0 && c.analyzed)
        .forEach(c=>recordSignal(c));
   saveHistory();
   renderHistory();
@@ -1484,7 +1618,7 @@ async function fetchNews(){
       bullWords.forEach(w=>{ if(title.includes(w)){ sent='bull'; impact=Math.min(95,impact+8); } });
       bearWords.forEach(w=>{ if(title.includes(w)){ sent='bear'; impact=Math.min(95,impact+8); } });
 
-      const coinMap = {bitcoin:'BTC',ethereum:'ETH',solana:'SOL',bnb:'BNB',xrp:'XRP',cardano:'ADA',dogecoin:'DOGE',tron:'TRX',chainlink:'LINK',avalanche:'AVAX'};
+      const coinMap = {bitcoin:'BTC',ethereum:'ETH',solana:'SOL',bnb:'BNB',xrp:'XRP',cardano:'ADA',dogecoin:'DOGE',tron:'TRX',chainlink:'LINK',avalanche:'AVAX',polkadot:'DOT',polygon:'MATIC',cosmos:'ATOM',near:'NEAR',fantom:'FTM',algorand:'ALGO',aptos:'APT',sui:'SUI',toncoin:'TON',hedera:'HBAR',vechain:'VET',uniswap:'UNI',aave:'AAVE',maker:'MKR',synthetix:'SNX',curve:'CRV',lido:'LDO',compound:'COMP',injective:'INJ',shiba:'SHIB',pepe:'PEPE',render:'RNDR',bittensor:'TAO',worldcoin:'WLD',axie:'AXS',sandbox:'SAND',decentraland:'MANA',enjin:'ENJ',immutable:'IMX',gala:'GALA'};
       let coin = 'ALL';
       Object.entries(coinMap).forEach(([k,v])=>{ if(title.includes(k)||title.includes(v.toLowerCase())) coin=v; });
 
@@ -2116,6 +2250,46 @@ function dmRender(){
 // ═══════════════════════════════════════════════════════════
 // BOOT SEQUENCE
 // ═══════════════════════════════════════════════════════════
+
+// Populate demo trade coin dropdown dynamically
+(function(){
+  const sel = document.getElementById('dm-coin');
+  if(sel){
+    const groups = {Layer1:[],DeFi:[],Meme:[],AI:[],Gaming:[]};
+    COINS.forEach(c=>{ if(groups[c.cat]) groups[c.cat].push(c); });
+    Object.entries(groups).forEach(([cat,coins])=>{
+      if(!coins.length) return;
+      const grp = document.createElement('optgroup');
+      grp.label = cat;
+      coins.forEach(c=>{
+        const opt = document.createElement('option');
+        opt.value = c.sym;
+        opt.textContent = c.sym + ' — ' + c.name;
+        grp.appendChild(opt);
+      });
+      sel.appendChild(grp);
+    });
+  }
+  // Populate chart symbol selector
+  const chartSel = document.getElementById('sym-sel');
+  if(chartSel){
+    const groups2 = {Layer1:[],DeFi:[],Meme:[],AI:[],Gaming:[]};
+    COINS.forEach(c=>{ if(groups2[c.cat]) groups2[c.cat].push(c); });
+    Object.entries(groups2).forEach(([cat,coins])=>{
+      if(!coins.length) return;
+      const grp = document.createElement('optgroup');
+      grp.label = cat;
+      coins.forEach(c=>{
+        const opt = document.createElement('option');
+        opt.value = c.sym+'USDT';
+        opt.textContent = c.sym+'/USDT';
+        if(c.sym==='BTC') opt.selected = true;
+        grp.appendChild(opt);
+      });
+      chartSel.appendChild(grp);
+    });
+  }
+})();
 renderCoins();
 renderTable();
 loadHistory();
