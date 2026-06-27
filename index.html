@@ -977,9 +977,26 @@ function getTrendDirection(closes){
   const price = closes[closes.length-1];
   const ema20 = calculateEMA(closes.slice(-50), 20);
   const ema50 = calculateEMA(closes, 50);
-  if(ema20 > ema50 && price > ema50) return 'Bullish';
-  if(ema20 < ema50 && price < ema50) return 'Bearish';
-  return 'Neutral';
+
+  // EMA20 vs EMA50 is the PRIMARY trend call — this is the medium-term direction
+  // and is what should decide Bullish/Bearish in most cases.
+  const emaBullish = ema20 > ema50;
+
+  // Price vs EMA50 is a soft confirmation, not a hard gate. A small buffer (0.15%)
+  // means a price that's only marginally on the "wrong" side of EMA50 — completely
+  // normal during a pullback/bounce inside an established trend — doesn't flip the
+  // whole call to Neutral. Only a price that's MEANINGFULLY against the EMA trend
+  // (more than the buffer, in the opposite direction) downgrades to Neutral, since
+  // that's a genuine sign the trend may be turning.
+  const buffer = ema50 * 0.0015; // 0.15% of price as a tolerance band
+
+  if(emaBullish){
+    if(price >= ema50 - buffer) return 'Bullish';      // at/above EMA50, or only marginally below — still bullish
+    return 'Neutral';                                    // price meaningfully below EMA50 despite bullish EMA cross — trend may be turning
+  } else {
+    if(price <= ema50 + buffer) return 'Bearish';       // at/below EMA50, or only marginally above — still bearish
+    return 'Neutral';                                    // price meaningfully above EMA50 despite bearish EMA cross — trend may be turning
+  }
 }
 
 /**
