@@ -343,6 +343,7 @@
             <option value="TRXUSDT">TRX/USDT</option>
             <option value="LINKUSDT">LINK/USDT</option>
             <option value="AVAXUSDT">AVAX/USDT</option>
+            <option value="PAXGUSDT">GOLD (PAXG)/USDT</option>
           </select>
         </div>
         <div style="padding:10px">
@@ -462,6 +463,7 @@
                   <option value="TRX">TRX — TRON</option>
                   <option value="LINK">LINK — Chainlink</option>
                   <option value="AVAX">AVAX — Avalanche</option>
+                  <option value="PAXG">PAXG — Gold (PAX Gold)</option>
                 </select>
               </div>
 
@@ -606,6 +608,7 @@ const COINS = [
   {sym:'TRX',name:'TRON',      color:'#ef0027',bg:'rgba(239,0,39,.15)',   price:0, chg:0, vol:'0', mcap:'—', score:50, sig:'Analyzing...', conf:50, trend:'Neutral', reason:'Waiting for live data...', tags:[]},
   {sym:'LINK',name:'Chainlink',color:'#2a5ada',bg:'rgba(42,90,218,.15)',  price:0, chg:0, vol:'0', mcap:'—', score:50, sig:'Analyzing...', conf:50, trend:'Neutral', reason:'Waiting for live data...', tags:[]},
   {sym:'AVAX',name:'Avalanche',color:'#e84142',bg:'rgba(232,65,66,.15)',  price:0, chg:0, vol:'0', mcap:'—', score:50, sig:'Analyzing...', conf:50, trend:'Neutral', reason:'Waiting for live data...', tags:[]},
+  {sym:'PAXG',name:'Gold (PAX Gold)',color:'#d4af37',bg:'rgba(212,175,55,.15)', price:0, chg:0, vol:'0', mcap:'—', score:50, sig:'Analyzing...', conf:50, trend:'Neutral', reason:'Waiting for live data...', tags:[]},
 ];
 
 let threshold = 60;
@@ -1618,7 +1621,7 @@ async function fetchNews(){
       bullWords.forEach(w=>{ if(title.includes(w)){ sent='bull'; impact=Math.min(95,impact+8); } });
       bearWords.forEach(w=>{ if(title.includes(w)){ sent='bear'; impact=Math.min(95,impact+8); } });
 
-      const coinMap = {bitcoin:'BTC',ethereum:'ETH',solana:'SOL',bnb:'BNB',xrp:'XRP',cardano:'ADA',dogecoin:'DOGE',tron:'TRX',chainlink:'LINK',avalanche:'AVAX'};
+      const coinMap = {bitcoin:'BTC',ethereum:'ETH',solana:'SOL',bnb:'BNB',xrp:'XRP',cardano:'ADA',dogecoin:'DOGE',tron:'TRX',chainlink:'LINK',avalanche:'AVAX',gold:'PAXG',paxg:'PAXG'};
       let coin = 'ALL';
       Object.entries(coinMap).forEach(([k,v])=>{ if(title.includes(k)||title.includes(v.toLowerCase())) coin=v; });
 
@@ -1767,7 +1770,7 @@ async function fetchPrices(){
         coin.price = parseFloat(d.lastPrice);
         coin.chg   = parseFloat(d.priceChangePercent);
         coin.vol   = formatVol(parseFloat(d.quoteVolume));
-        const supplies = {BTC:19.7e6,ETH:120e6,SOL:450e6,BNB:145e6,XRP:55e9,ADA:35e9,DOGE:143e9,TRX:87e9,LINK:600e6,AVAX:390e6};
+        const supplies = {BTC:19.7e6,ETH:120e6,SOL:450e6,BNB:145e6,XRP:55e9,ADA:35e9,DOGE:143e9,TRX:87e9,LINK:600e6,AVAX:390e6,PAXG:460e3};
         const supply = supplies[sym] || 0;
         coin.mcap = supply ? formatVol(coin.price * supply) : '—';
       }
