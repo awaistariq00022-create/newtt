@@ -1062,26 +1062,51 @@ function calculateAdvancedSignal(marketData, options = {}){
   });
 
   if(!Array.isArray(shortKlines) || shortKlines.length < 60) return fail('Insufficient short-timeframe data.');
-  if(!Array.isArray(higherKlines) || higherKlines.length < 50) return fail('Insufficient higher-timeframe data.');
 
   const closesShort  = shortKlines.map(k=>parseFloat(k[4])).filter(v=>!isNaN(v)&&v>0);
-  const closesHigher = higherKlines.map(k=>parseFloat(k[4])).filter(v=>!isNaN(v)&&v>0);
   const volumesShort = shortKlines.map(k=>parseFloat(k[5])||0);
 
-  if(closesShort.length < 60 || closesHigher.length < 50) return fail('Candle data has too many invalid values.');
+  if(closesShort.length < 60) return fail('Short-timeframe candle data has too many invalid values.');
 
   const currentPrice  = closesShort[closesShort.length-1];
   const currentVolume = volumesShort[volumesShort.length-1];
   if(!currentPrice || currentPrice<=0) return fail('Invalid current price.');
 
   // GATE 1 — Multi-timeframe confluence
-  const trendShort  = getTrendDirection(closesShort);
-  const trendHigher = getTrendDirection(closesHigher);
-  const mtfAligned  = trendShort!=='Neutral' && trendShort===trendHigher;
-  if(!mtfAligned){
+  const trendShort = getTrendDirection(closesShort);
+
+  // 1H confirmation data may legitimately be unavailable (a single failed/rate-limited
+  // API call shouldn't silently masquerade as "timeframes disagree" — those are very
+  // different situations and were previously being conflated, permanently stalling
+  // every coin at a low confidence whenever the 1H fetch had any hiccup).
+  const higherDataOK = Array.isArray(higherKlines) && higherKlines.length >= 50;
+  let trendHigher = null;
+  let mtfAligned = false;
+  let mtfFallback = false;
+
+  if(higherDataOK){
+    const closesHigher = higherKlines.map(k=>parseFloat(k[4])).filter(v=>!isNaN(v)&&v>0);
+    if(closesHigher.length >= 50){
+      trendHigher = getTrendDirection(closesHigher);
+      mtfAligned = trendShort!=='Neutral' && trendShort===trendHigher;
+    }
+  }
+
+  if(!higherDataOK || trendHigher===null){
+    // No usable 1H data — fall back to trusting the 15m trend alone, flagged as a
+    // fallback (lower confidence applied later) rather than a false "conflict".
+    if(trendShort === 'Neutral'){
+      return fail('15m trend is unclear and 1H confirmation is unavailable — no trade.',
+        { trendShort, trendHigher: null, currentPrice });
+    }
+    mtfAligned = true;
+    mtfFallback = true;
+    trendHigher = 'Unavailable';
+  } else if(!mtfAligned){
     return fail(`Multi-timeframe conflict: 15m is "${trendShort}", 1H is "${trendHigher}" — both must align.`,
       { trendShort, trendHigher, currentPrice });
   }
+
   const direction = trendShort;
   const isBullish = direction === 'Bullish';
 
@@ -1092,7 +1117,7 @@ function calculateAdvancedSignal(marketData, options = {}){
     return { symbol, signal:'Neutral', score:0, maxScore:4, direction:null,
       gates:{multiTimeframe:true, volume:false, volatility:false},
       breakdown:{rsi:false,macdHistogram:false,emaCross:false,sentiment:false},
-      meta:{trendShort,trendHigher,currentVolume,avgVolume,currentPrice},
+      meta:{trendShort,trendHigher,mtfFallback,currentVolume,avgVolume,currentPrice},
       reason:`Thin liquidity: volume (${currentVolume.toFixed(2)}) is below the ${volumeLookback}-period average (${avgVolume.toFixed(2)}).` };
   }
 
@@ -1105,7 +1130,7 @@ function calculateAdvancedSignal(marketData, options = {}){
     return { symbol, signal:'Neutral', score:0, maxScore:4, direction:null,
       gates:{multiTimeframe:true, volume:true, volatility:false},
       breakdown:{rsi:false,macdHistogram:false,emaCross:false,sentiment:false},
-      meta:{trendShort,trendHigher,currentVolume,avgVolume,atr,atrPct,currentPrice},
+      meta:{trendShort,trendHigher,mtfFallback,currentVolume,avgVolume,atr,atrPct,currentPrice},
       reason:`Low volatility: ATR is only ${atrPct.toFixed(2)}% of price (min ${minATRPct}%) — market is range-bound, crossover signals suppressed.` };
   }
 
@@ -1139,11 +1164,11 @@ function calculateAdvancedSignal(marketData, options = {}){
     symbol, signal, score, maxScore:4, direction,
     gates:{multiTimeframe:true, volume:true, volatility:true},
     breakdown,
-    meta:{ trendShort, trendHigher, rsi, macdHistogram:macd.histogram, ema50Short,
+    meta:{ trendShort, trendHigher, mtfFallback, rsi, macdHistogram:macd.histogram, ema50Short,
            currentPrice, currentVolume, avgVolume, atr, atrPct, sentimentScore, volRatio: avgVolume>0?currentVolume/avgVolume:1 },
-    reason: score>=2
-      ? `${direction} confluence confirmed on both timeframes, volume & volatility gates passed, score ${score}/4.`
-      : `Gates passed but confluence score only ${score}/4 — not enough confirming factors.`
+    reason: (score>=2
+      ? `${direction} confluence confirmed${mtfFallback?' on 15m (1H confirmation unavailable, using 15m-only)':' on both timeframes'}, volume & volatility gates passed, score ${score}/4.`
+      : `Gates passed but confluence score only ${score}/4 — not enough confirming factors.`)
   };
 }
 
@@ -1362,11 +1387,12 @@ async function analyzeCoin(coin){
     let bullish = adv.direction === 'Bullish';
 
     if(!adv.gates.multiTimeframe){
-      // GATE 1 blocked — timeframes disagree, no trade regardless of any other indicator
+      // GATE 1 blocked — either timeframes genuinely disagree, or 1H data was
+      // unavailable AND the 15m trend itself was unclear (adv.reason explains which)
       signal = 'No Trade'; trend = 'Sideways';
       confidence = 35;
       reason = adv.reason;
-      tags = ['MTF Conflict', '15m Klines'];
+      tags = ['Trend Unclear', '15m Klines'];
     } else if(!adv.gates.volume){
       // GATE 2 blocked — thin liquidity, suppress the trend signal
       signal = 'No Trade'; trend = adv.meta.trendShort || 'Sideways';
@@ -1391,16 +1417,21 @@ async function analyzeCoin(coin){
         tags = ['Gates Passed','Low Confluence','15m Klines'];
       } else {
         // Base confidence scales directly with confluence score (0-4 -> this is the
-        // core accuracy mechanism: more agreeing factors = higher conviction)
-        confidence = 55 + adv.score * 10; // score 2 -> 75, score 3 -> 85, score 4 -> 95
+        // core accuracy mechanism: more agreeing factors = higher conviction).
+        // If 1H confirmation was unavailable (API hiccup) and we fell back to 15m-only,
+        // apply a small penalty to reflect the missing confirmation — still tradeable,
+        // just slightly less certain than a fully dual-timeframe-confirmed signal.
+        const fallbackPenalty = adv.meta.mtfFallback ? 8 : 0;
+        confidence = (55 + adv.score * 10) - fallbackPenalty; // score 2 -> 75, score 3 -> 85, score 4 -> 95
         tags = ['Gates Passed', `Confluence ${adv.score}/4`, '15m Klines'];
+        if(adv.meta.mtfFallback) tags.push('1H Unavailable — 15m Only');
 
         const rsiNote = adv.breakdown.rsi ? `RSI ${bullish?'oversold':'overbought'} at ${rsi.toFixed(1)}` : `RSI neutral at ${rsi.toFixed(1)}`;
         const macdNote = adv.breakdown.macdHistogram ? `MACD histogram confirms ${bullish?'bullish':'bearish'} momentum` : `MACD not yet confirming`;
         const emaNote = adv.breakdown.emaCross ? `price is ${bullish?'above':'below'} the 50 EMA` : `price hasn't cleared the 50 EMA`;
         const sentNote = adv.breakdown.sentiment ? `news sentiment supports this direction` : `news sentiment is neutral/unsupportive`;
 
-        reason = `Multi-timeframe confluence confirmed (15m + 1H both ${adv.direction}), volume ${volRatio.toFixed(1)}x average, ATR ${atrPct.toFixed(2)}% of price. Confluence score ${adv.score}/4: ${rsiNote}; ${macdNote}; ${emaNote}; ${sentNote}.`;
+        reason = `${adv.meta.mtfFallback ? '1H confirmation was unavailable (API issue) — using 15m trend only.' : 'Multi-timeframe confluence confirmed (15m + 1H both '+adv.direction+').'} Volume ${volRatio.toFixed(1)}x average, ATR ${atrPct.toFixed(2)}% of price. Confluence score ${adv.score}/4: ${rsiNote}; ${macdNote}; ${emaNote}; ${sentNote}.`;
 
         if(adv.breakdown.rsi) tags.push('RSI');
         if(adv.breakdown.macdHistogram) tags.push('MACD');
@@ -1497,12 +1528,12 @@ async function analyzeCoin(coin){
 
       const tf1hEl = document.getElementById('ind-1h');
       if(tf1hEl){
-        const t1h = adv.meta.trendHigher || 'Unknown';
+        const t1h = adv.meta.mtfFallback ? 'Unavailable' : (adv.meta.trendHigher || 'Unknown');
         tf1hEl.textContent = t1h;
         tf1hEl.style.color = t1h==='Bullish'?'var(--green)':t1h==='Bearish'?'var(--red)':'var(--t3)';
       }
       const tf1hSEl = document.getElementById('ind-1h-s');
-      if(tf1hSEl) tf1hSEl.textContent = adv.gates.multiTimeframe ? 'Confirms 15m' : 'Conflicts with 15m';
+      if(tf1hSEl) tf1hSEl.textContent = adv.meta.mtfFallback ? 'Using 15m only' : (adv.gates.multiTimeframe ? 'Confirms 15m' : 'Conflicts with 15m');
     }
 
   } catch(e){
