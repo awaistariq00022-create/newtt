@@ -988,7 +988,7 @@ function getTrendDirection(closes){
   // 0.1% even in a clear trend) — 0.05% catches real trend while still rejecting
   // genuinely flat/choppy markets.
   const emaGapPct = ema50!==0 ? ((ema20-ema50)/ema50)*100 : 0;
-  if(Math.abs(emaGapPct) < 0.05) return 'Neutral';
+  if(Math.abs(emaGapPct) < 0.02) return 'Neutral';
   const emaBullish = emaGapPct > 0;
 
   // 2) Recent momentum (last 14 candles of THIS series) must not MEANINGFULLY
@@ -1052,7 +1052,7 @@ function calculateAdvancedSignal(marketData, options = {}){
   // only occur during sharp, unusual volatility spikes — far too strict as a
   // baseline "is this market tradeable" gate, which is why nearly every coin was
   // getting stuck at the gate and never reaching the scoring stage).
-  const { minATRPct = 0.08, volumeLookback = 20 } = options;
+  const { minATRPct = 0.04, volumeLookback = 20 } = options;
 
   const fail = (reason, extra={}) => ({
     symbol, signal: 'Neutral', score: 0, maxScore: 4, direction: null,
@@ -1112,7 +1112,7 @@ function calculateAdvancedSignal(marketData, options = {}){
 
   // GATE 2 — Volume/liquidity
   const avgVolume = calcSMA(volumesShort.slice(0,-1), volumeLookback);
-  const volumeOK  = avgVolume>0 && currentVolume>=avgVolume;
+  const volumeOK  = avgVolume>0 && currentVolume>=(avgVolume * 0.6);
   if(!volumeOK){
     return { symbol, signal:'Neutral', score:0, maxScore:4, direction:null,
       gates:{multiTimeframe:true, volume:false, volatility:false},
