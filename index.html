@@ -981,24 +981,35 @@ function getTrendDirection(closes){
   const ema20 = calculateEMA(closes.slice(-50), 20);
   const ema50 = calculateEMA(closes, 50);
 
-  // EMA20 vs EMA50 is the PRIMARY trend call — this is the medium-term direction
-  // and is what should decide Bullish/Bearish in most cases.
-  const emaBullish = ema20 > ema50;
+  // 1) The EMA20/50 gap must be MEANINGFUL, not just barely crossed. In a genuinely
+  // flat/sideways market the two EMAs constantly cross from pure noise — requiring
+  // a minimum % gap stops that noise from being read as a real trend.
+  const emaGapPct = ema50!==0 ? ((ema20-ema50)/ema50)*100 : 0;
+  if(Math.abs(emaGapPct) < 0.2) return 'Neutral';
+  const emaBullish = emaGapPct > 0;
 
-  // Price vs EMA50 is a soft confirmation, not a hard gate. A small buffer (0.15%)
-  // means a price that's only marginally on the "wrong" side of EMA50 — completely
-  // normal during a pullback/bounce inside an established trend — doesn't flip the
-  // whole call to Neutral. Only a price that's MEANINGFULLY against the EMA trend
-  // (more than the buffer, in the opposite direction) downgrades to Neutral, since
-  // that's a genuine sign the trend may be turning.
-  const buffer = ema50 * 0.0015; // 0.15% of price as a tolerance band
+  // 2) Recent momentum (last 14 candles of THIS series) must not MEANINGFULLY
+  // disagree with the EMA direction. EMA20/50 are lagging averages — if price has
+  // just started reversing, the EMA can still show the old direction for a while.
+  // That exact lag previously produced wrong-direction "Strong Buy" signals while
+  // the market was already falling. A small disagreement (noise) is tolerated;
+  // only a disagreement bigger than the threshold downgrades the call.
+  const lookback = Math.min(14, closes.length - 1);
+  const pastPrice = closes[closes.length - 1 - lookback];
+  const recentMomentumPct = pastPrice > 0 ? ((price - pastPrice) / pastPrice) * 100 : 0;
+
+  // 3) Soft confirmation buffer for price-vs-EMA50 — normal pullbacks within an
+  // established trend shouldn't flip the whole call to Neutral.
+  const buffer = ema50 * 0.0015;
 
   if(emaBullish){
-    if(price >= ema50 - buffer) return 'Bullish';      // at/above EMA50, or only marginally below — still bullish
-    return 'Neutral';                                    // price meaningfully below EMA50 despite bullish EMA cross — trend may be turning
+    const momentumDisagrees = recentMomentumPct < -1.0;
+    if(!momentumDisagrees && price >= ema50 - buffer) return 'Bullish';
+    return 'Neutral';
   } else {
-    if(price <= ema50 + buffer) return 'Bearish';       // at/below EMA50, or only marginally above — still bearish
-    return 'Neutral';                                    // price meaningfully above EMA50 despite bearish EMA cross — trend may be turning
+    const momentumDisagrees = recentMomentumPct > 1.0;
+    if(!momentumDisagrees && price <= ema50 + buffer) return 'Bearish';
+    return 'Neutral';
   }
 }
 
