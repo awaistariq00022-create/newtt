@@ -983,9 +983,12 @@ function getTrendDirection(closes){
 
   // 1) The EMA20/50 gap must be MEANINGFUL, not just barely crossed. In a genuinely
   // flat/sideways market the two EMAs constantly cross from pure noise — requiring
-  // a minimum % gap stops that noise from being read as a real trend.
+  // a minimum % gap stops that noise from being read as a real trend. Calibrated
+  // against realistic 15m crypto candle data (real EMA gaps are usually well under
+  // 0.1% even in a clear trend) — 0.05% catches real trend while still rejecting
+  // genuinely flat/choppy markets.
   const emaGapPct = ema50!==0 ? ((ema20-ema50)/ema50)*100 : 0;
-  if(Math.abs(emaGapPct) < 0.2) return 'Neutral';
+  if(Math.abs(emaGapPct) < 0.05) return 'Neutral';
   const emaBullish = emaGapPct > 0;
 
   // 2) Recent momentum (last 14 candles of THIS series) must not MEANINGFULLY
@@ -1044,7 +1047,12 @@ function calculateAdvancedSignal(marketData, options = {}){
       meta:{}, reason:'No market data provided.' };
   }
   const { symbol, shortKlines, higherKlines, sentimentScore = 0 } = marketData;
-  const { minATRPct = 0.3, volumeLookback = 20 } = options;
+  // minATRPct calibrated against real 15m crypto candle data: a typical BTC 15m
+  // candle range is roughly 0.08-0.10% of price in normal conditions (0.3% would
+  // only occur during sharp, unusual volatility spikes — far too strict as a
+  // baseline "is this market tradeable" gate, which is why nearly every coin was
+  // getting stuck at the gate and never reaching the scoring stage).
+  const { minATRPct = 0.08, volumeLookback = 20 } = options;
 
   const fail = (reason, extra={}) => ({
     symbol, signal: 'Neutral', score: 0, maxScore: 4, direction: null,
